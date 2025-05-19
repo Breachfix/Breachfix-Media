@@ -1,3 +1,4 @@
+// src/app/my-list/[...id]/page.js
 "use client";
 
 import { GlobalContext } from "@/context";
@@ -9,8 +10,11 @@ import Navbar from "@/components/navbar";
 import MediaItem from "@/components/media-item";
 import CircleLoader from "@/components/circle-loader";
 import UnauthPage from "@/components/unauth-page";
+import { useParams } from "next/navigation";
 
 export default function MyList() {
+
+const params = useParams();
   const {
     favorites,
     setFavorites,
