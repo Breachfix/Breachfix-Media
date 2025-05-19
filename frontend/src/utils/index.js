@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const API = process.env.NEXT_PUBLIC_API_BASE_URL;  
-const API_URL = `${API}/api/v1`; // Backend URL for the API
+const API  = process.env.NEXT_PUBLIC_API_BASE_URL;  
+const API_URL= `${API}/api/v1`; // Backend URL for the API
 
 // Create an Axios instance for the Movies service
 const api = axios.create({
@@ -209,35 +209,75 @@ export const getTVorMovieSearchResults = async (type, query) => {
 
 export const getTVorMovieDetailsByID = async (type, id) => {
   try {
-    const res = await fetch(
-      `${BASE_URL}/${type}/${id}?api_key=${API_KEY}&language=en-US&append_to_response=videos`,
-      {
-        method: "GET",
-      }
-    );
+    const res = await axios.get(`${API_URL}/media/${type}/${id}`);
+    const data = res.data?.data;
 
+    if (!data) return null;
+
+    // 👇 Enhance data for 'episode' type by fetching parent TV show
+    if (type === "episode") {
+      const tvShowId = data.tvShowId || data.tvShow?._id;
+      if (tvShowId) {
+        const tvShowRes = await axios.get(`${API_URL}/media/tvShow/${tvShowId}`);
+        const tvShowData = tvShowRes.data?.data;
+
+        return {
+          ...data,
+          title: `${tvShowData.title} - S${data.seasonNumber}E${data.episodeNumber}`,
+          genres: tvShowData.genres,
+          release_date: data.releaseDate || tvShowData.releaseDate,
+          poster_path: data.thumbnail || tvShowData.poster,
+          backdrop_path: data.backdrop || tvShowData.backdrop,
+          trailer_url: data.trailerUrl || tvShowData.trailerUrl,
+          video_url:
+            data.video_url_s3 ||
+            data.transcodedVideo ||
+            data.HLS?.["1080p"] ||
+            data.HLS?.["720p"] ||
+            tvShowData.trailerUrl,
+        };
+      }
+    }
+
+    // 👇 Normalize movie and tvShow fields as well
+    return {
+      ...data,
+      video_url:
+        data.trailerUrl ||
+        data.trailer ||
+        data.video_url_s3 ||
+        data.transcodedVideo ||
+        data.HLS?.["1080p"] ||
+        data.HLS?.["720p"],
+      poster_path: data.poster || data.thumbnail,
+      backdrop_path: data.backdrop,
+    };
+  } catch (error) {
+    console.error("❌ Error fetching media details:", error?.response?.data || error.message);
+    return null;
+  }
+};
+
+export const fetchTrailerFromYouTube = async (title) => {
+  try {
+    const res = await fetch(`/api/videos/search-trailer?title=${encodeURIComponent(title)}`);
     const data = await res.json();
 
-    return data;
-  } catch (e) {
-    console.log(e);
+    if (data.videoKey) return data.videoKey;
+    return null;
+  } catch (error) {
+    console.error("❌ Failed to fetch YouTube trailer:", error);
+    return null;
   }
 };
 
 export const getSimilarTVorMovies = async (type, id) => {
   try {
-    const res = await fetch(
-      `${BASE_URL}/${type}/${id}/similar?api_key=${API_KEY}&language=en-US`,
-      {
-        method: "GET",
-      }
-    );
-
-    const data = await res.json();
-
-    return data && data.results;
-  } catch (e) {
-    console.log(e);
+    const res = await axios.get(`${API_URL}/media/${type}/${id}/similar`);
+    return res.data || [];
+  } catch (error) {
+    console.error("❌ Error fetching similar content:", error?.response?.data || error.message);
+    return [];
   }
 };
 
@@ -348,157 +388,3 @@ export const fetchWatchContent = async (type, id) => {
 };
 
 
-
-// //-------------------------------
-// const BASE_URL= process.env.NEXT_MOVIES_API_BASE_URL 
-
-// // Get trending movies
-// export const getTrendingMedias = async () => {
-//   const res = await fetch(`${BASE_URL}/trending`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// // Get top rated movies (uses same controller as trending for now)
-// export const getTopratedMedias = async () => {
-//   const res = await fetch(`${BASE_URL}/top-rated`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// // Get popular movies (also reuses trending for now)
-// export const getPopularMedias = async () => {
-//   const res = await fetch(`${BASE_URL}/popular`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// export const gettrandingMedias = async () => {
-//   const res = await fetch(`${BASE_URL}/popular`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// // Get movies by category/genre (e.g. Action, Comedy)
-// export const getTVorMoviesByGenre = async (type, genre) => {
-//   const res = await fetch(`${BASE_URL}/category/${genre}`);
-//   const data = await res.json();
-//   return data.movies || [];
-// };
-
-// // Get movie details by ID
-// export const getTVorMovieDetailsByID = async (type, id) => {
-//   const res = await fetch(`${BASE_URL}/${id}`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// // Get trailers for a movie
-// export const getTVorMovieVideosByID = async (type, id) => {
-//   const res = await fetch(`${BASE_URL}/${id}/trailers`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// // Get similar movies (related by genres)
-// export const getSimilarTVorMovies = async (type, id) => {
-//   const res = await fetch(`${BASE_URL}/${id}/related`);
-//   const data = await res.json();
-//   return data.relatedMovies || [];
-// };
-
-// // Search movies by title
-// export const getTVorMovieSearchResults = async (type, query) => {
-//   const res = await fetch(`${BASE_URL}/search/${encodeURIComponent(query)}`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// // Fetch all movies (can be used for admin or media hub)
-// export const getAllMovies = async (page = 1, limit = 20) => {
-//   const res = await fetch(`${BASE_URL}?page=${page}&limit=${limit}`);
-//   const data = await res.json();
-//   return data.movies || [];
-// };
-
-// // Get Hero Content (Featured Movie)
-// export const getHeroContent = async () => {
-//   const res = await fetch(`${BASE_URL}/hero-content`);
-//   const data = await res.json();
-//   return data;
-// };
-
-
-// // utils/tvShowAPI.js
-
-// const API = process.env.NEXT_TV_API_BASE_URL;
-// const TV_ENDPOINT = `${API}`;
-
-// // ----------------------------
-// // Discovery / Search
-// // ----------------------------
-// export const getTrendingTvShows = async () => {
-//   const res = await fetch(`${TV_ENDPOINT}/trending`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// export const getTvShowsByCategory = async (category) => {
-//   const res = await fetch(`${TV_ENDPOINT}/category/${category}`);
-//   const data = await res.json();
-//   return data.movies || data; // In case it's wrapped
-// };
-
-// export const searchTvShows = async (query) => {
-//   const res = await fetch(`${TV_ENDPOINT}/search/${query}`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// // ----------------------------
-// // TV Show CRUD + Details
-// // ----------------------------
-// export const getAllTvShows = async () => {
-//   const res = await fetch(`${TV_ENDPOINT}`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// export const getTvShowById = async (id) => {
-//   const res = await fetch(`${TV_ENDPOINT}/${id}`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// export const getTvShowOrEpisodeDetails = async (id) => {
-//   const res = await fetch(`${TV_ENDPOINT}/${id}/details`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// export const getSimilarTvShows = async (id) => {
-//   const res = await fetch(`${TV_ENDPOINT}/${id}/similar`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// export const getTvShowTrailers = async (id) => {
-//   const res = await fetch(`${TV_ENDPOINT}/${id}/trailers`);
-//   const data = await res.json();
-//   return data.trailerUrl || data;
-// };
-
-// // ----------------------------
-// // Episode Access / CRUD
-// // ----------------------------
-// export const getEpisodesBySeason = async (tvShowId, seasonNumber) => {
-//   const res = await fetch(`${TV_ENDPOINT}/${tvShowId}/seasons/${seasonNumber}/episodes`);
-//   const data = await res.json();
-//   return data;
-// };
-
-// export const getEpisodeDetails = async (tvShowId, seasonNumber, episodeId) => {
-//   const res = await fetch(`${TV_ENDPOINT}/${tvShowId}/seasons/${seasonNumber}/episodes/${episodeId}`);
-//   const data = await res.json();
-//   return data;
-// };

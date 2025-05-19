@@ -1,18 +1,21 @@
 "use client";
+
 import { motion } from "framer-motion";
 import MuiModal from "@mui/material/Modal";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { useContext } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { GlobalContext } from "@/context";
-import { useEffect } from "react";
-import { getAllfavorites } from '@/utils/accountAPI';
-import { getSimilarTVorMovies, getTVorMovieDetailsByID } from "@/utils";
-import { useState } from "react";
+import {
+  getAllfavorites,
+  getSimilarTVorMovies,
+  getTVorMovieDetailsByID,
+  fetchTrailerFromYouTube
+} from "@/utils";
 import ReactPlayer from "react-player";
 import MediaItem from "../media-item";
 import { AiFillPlayCircle } from "react-icons/ai";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext"; // ✅ this is your custom context
+import { useAuth } from "@/context/AuthContext";
 
 export default function DetailsPopup({ show, setShow }) {
   const {
@@ -24,109 +27,86 @@ export default function DetailsPopup({ show, setShow }) {
     setCurrentMediaInfoIdAndType,
     loggedInAccount,
   } = useContext(GlobalContext);
-  const [key, setKey] = useState("");
 
-  const router = useRouter()
- const { user } = useAuth(); 
-
-  console.log(currentMediaInfoIdAndType);
+  const [key, setKey] = useState("rgTKJE5Z_sk"); // fallback key
+  const router = useRouter();
+  const { user } = useAuth();
+  const modalRef = useRef(null);
 
   useEffect(() => {
-    if (currentMediaInfoIdAndType !== null) {
-      async function getMediaDetails() {
-        const extractMediaDetails = await getTVorMovieDetailsByID(
-          currentMediaInfoIdAndType.type,
-          currentMediaInfoIdAndType.id
-        );
+    if (!currentMediaInfoIdAndType) return;
 
-        const extractSimilarMovies = await getSimilarTVorMovies(
-          currentMediaInfoIdAndType.type,
-          currentMediaInfoIdAndType.id
-        );
+    async function getMediaDetails() {
+      const { type, id } = currentMediaInfoIdAndType;
 
-        const allFavorites = await getAllfavorites(
-          user?.id,
-          loggedInAccount?._id
-        );
+      // Step 1: Get the full media details
+      const extractMediaDetails = await getTVorMovieDetailsByID(type, id);
+      setMediaDetails(extractMediaDetails);
 
-        console.log(extractMediaDetails, "extractMediaDetails");
+      // Step 2: Get similar media and favorites
+      const extractSimilarMovies = await getSimilarTVorMovies(type, id);
+      const allFavorites = await getAllfavorites(user?.id, loggedInAccount?._id);
 
-        const findIndexOfTrailer =
-          extractMediaDetails &&
-          extractMediaDetails.videos &&
-          extractMediaDetails.videos.results &&
-          extractMediaDetails.videos.results.length
-            ? extractMediaDetails.videos.results.findIndex(
-                (item) => item.type === "Trailer"
-              )
-            : -1;
+      setSimilarMedias(
+        extractSimilarMovies.map((item) => ({
+          ...item,
+          type: type === "movie" ? "movie" : "tv",
+          addedToFavorites:
+            allFavorites?.map((fav) => fav.movieID).includes(item.id) ?? false,
+        }))
+      );
 
-        const findIndexOfClip =
-          extractMediaDetails &&
-          extractMediaDetails.videos &&
-          extractMediaDetails.videos.results &&
-          extractMediaDetails.videos.results.length
-            ? extractMediaDetails.videos.results.findIndex(
-                (item) => item.type === "Clip"
-              )
-            : -1;
-        setMediaDetails(extractMediaDetails);
-        setKey(
-          findIndexOfTrailer !== -1
-            ? extractMediaDetails.videos?.results[findIndexOfTrailer]?.key
-            : findIndexOfClip !== -1
-            ? extractMediaDetails.videos?.results[findIndexOfClip]?.key
-            : "XuDwndGaCFo"
-        );
-        setSimilarMedias(
-          extractSimilarMovies.map((item) => ({
-            ...item,
-            type: currentMediaInfoIdAndType.type === "movie" ? "movie" : "tv",
-            addedToFavorites:
-            allFavorites && allFavorites.length
-              ? allFavorites.map((fav) => fav.movieID).indexOf(item.id) >
-                -1
-              : false,
-          }))
-        );
+      // Step 3: Determine the YouTube key
+      let videoKey = extractMediaDetails?.videoKey || null;
+
+      // If not available, try YouTube fallback
+      if (!videoKey && extractMediaDetails?.title) {
+        const fallbackKey = await fetchTrailerFromYouTube(extractMediaDetails.title);
+        if (fallbackKey) videoKey = fallbackKey;
       }
 
-      getMediaDetails();
+      setKey(videoKey || "rgTKJE5Z_sk"); // fallback if still empty
+
+      // Step 4: Scroll modal to top
+      if (modalRef.current) modalRef.current.scrollTop = 0;
     }
+
+    getMediaDetails();
   }, [currentMediaInfoIdAndType, loggedInAccount]);
 
   function handleClose() {
     setShow(false);
-    setCurrentMediaInfoIdAndType(null)
+    setCurrentMediaInfoIdAndType(null);
+    setMediaDetails(null);
+    setKey("rgTKJE5Z_sk");
   }
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{
-        duration: 0.8,
-        delay: 0.5,
-        ease: [0, 0.71, 0.2, 1.01],
-      }}
+      transition={{ duration: 0.8, delay: 0.5, ease: [0, 0.71, 0.2, 1.01] }}
     >
       <MuiModal
         open={show}
         onClose={handleClose}
         className="fixed !top-7 left-0 right-0 z-50 w-full mx-auto max-w-5xl overflow-hidden overflow-y-scroll rounded-md scrollbar-hide"
       >
-        <div>
+        <div ref={modalRef}>
           <button
             onClick={handleClose}
             className="modalButton flex items-center justify-center absolute top-5 right-5 bg-[#181818] hover:bg-[#181818] !z-40 border-none h-9 w-9"
           >
             <XMarkIcon className="h-6 w-6" />
           </button>
+
+          {/* Video Player */}
           <div className="relative pt-[56.25%]">
             <ReactPlayer
+              key={key}
               url={`https://www.youtube.com/watch?v=${key}`}
-              width={"100%"}
-              height={"100%"}
+              width="100%"
+              height="100%"
               style={{ position: "absolute", top: "0", left: "0" }}
               playing
               controls
@@ -148,34 +128,119 @@ export default function DetailsPopup({ show, setShow }) {
             </div>
           </div>
 
+          {/* Metadata */}
           <div className="rounded-b-md bg-[#181818] p-8">
-            <div className="space-x-2 pb-4 flex gap-4">
-              <div className="text-green-400 font-semibold flex gap-2">
-                <span>
-                  {mediaDetails?.release_date
-                    ? mediaDetails?.release_date.split("-")[0]
-                    : "2023"}
-                </span>
-                <div className="inline-flex border-2 border-white/40 rounded px-2">
-                  HD
-                </div>
-              </div>
-            </div>
+
+            <div className="pb-8 text-white space-y-4">
+
+  {/* Title & Year */}
+  <div className="flex flex-wrap items-center gap-4 text-2xl font-extrabold tracking-wide">
+    <h1 className="text-white uppercase">{mediaDetails?.title || "Untitled"}</h1>
+    {mediaDetails?.release_date && (
+      <span className="bg-red-600 text-white px-2 py-0.5 rounded text-sm font-semibold">
+        {mediaDetails.release_date.split("-")[0]}
+      </span>
+    )}
+    {currentMediaInfoIdAndType?.type && (
+      <span className="bg-white text-black px-2 py-0.5 rounded text-xs font-bold">
+        {currentMediaInfoIdAndType.type.toUpperCase()}
+      </span>
+    )}
+    <span className="border border-white/50 text-white text-xs px-2 py-0.5 rounded">
+      HD
+    </span>
+  </div>
+
+  {/* Duration / Language */}
+  <div className="flex flex-wrap gap-4 text-sm text-gray-300 font-medium">
+    {mediaDetails?.duration && (
+      <span className="flex items-center gap-1">
+        ⏱️ {Math.floor(mediaDetails.duration / 60)} min
+      </span>
+    )}
+    {mediaDetails?.language && (
+      <span className="flex items-center gap-1">
+        🌍 {mediaDetails.language}
+      </span>
+    )}
+  </div>
+
+  {/* Director */}
+  {mediaDetails?.director && (
+    <div className="text-sm text-gray-400">
+      🎬 <span className="italic">Directed by</span> {mediaDetails.director}
+    </div>
+  )}
+
+  {/* Genres */}
+  {mediaDetails?.genres?.length > 0 && (
+    <div className="text-sm text-gray-400">
+      🎭 <span className="font-medium">Genres:</span>{" "}
+      <span className="text-white">{mediaDetails.genres.join(", ")}</span>
+    </div>
+  )}
+
+  {/* Pricing */}
+  {mediaDetails?.pricing && (
+    <div className="text-sm font-semibold text-yellow-400">
+      💰 {mediaDetails.pricing.type === "free"
+        ? "Free to Watch"
+        : mediaDetails.pricing.purchasePrice
+        ? `Buy for $${mediaDetails.pricing.purchasePrice}`
+        : mediaDetails.pricing.rentalPrice
+        ? `Rent for $${mediaDetails.pricing.rentalPrice}`
+        : "Premium Access"}
+    </div>
+  )}
+
+  {/* Description */}
+  {mediaDetails?.description && (
+  <div className="text-sm text-gray-300 leading-relaxed space-y-3 mt-4">
+    {mediaDetails.description.split("\n").map((line, index) => {
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+      const parts = line.split(urlRegex).filter(Boolean); // Remove empty strings
+      return (
+        <p key={index} className="whitespace-pre-line break-words">
+          {parts.map((part, i) =>
+            urlRegex.test(part) ? (
+              <a
+                key={i}
+                href={part}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 underline hover:text-blue-300"
+              >
+                {part}
+              </a>
+            ) : (
+              <span key={i}>{part}</span>
+            )
+          )}
+        </p>
+      );
+    })}
+  </div>
+)}
+</div>
+
+            {/* Similar Content */}
             <h2 className="mt-10 mb-6 cursor-pointer text-sm font-semibold text-[#e5e5e5] transition-colors duration-200 hover:text-white md:text-2xl">
               More Like This
             </h2>
             <div className="grid grid-cols-5 gap-3 items-center scrollbar-hide md:p-2">
-              {similarMedias && similarMedias.length
+              {similarMedias?.length
                 ? similarMedias
                     .filter(
                       (item) =>
-                        item.backdrop_path !== null && item.poster_path !== null
+                        item.backdrop_path !== null &&
+                        item.poster_path !== null
                     )
                     .map((mediaItem) => (
                       <MediaItem
-                        key={mediaItem.id}
+                        key={mediaItem.id || mediaItem._id}
                         media={mediaItem}
-                        similarMovieView={true}
+                        similarMovieView
                       />
                     ))
                 : null}

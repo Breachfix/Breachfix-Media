@@ -8,6 +8,7 @@ import { TrashIcon } from "@heroicons/react/24/outline";
 import { usePathname, useRouter } from "next/navigation";
 import AccountForm from "@/components/account-form";
 import PinContainer from "@/components/pin-container";
+import AuthBackground from "@/components/AuthBackground";
 
 const initialFormData = {
   name: "",
@@ -21,6 +22,7 @@ export default function ManageAccounts() {
     pageLoader,
     setPageLoader,
     setLoggedInAccount,
+    loggedInAccount,
   } = useContext(GlobalContext);
 
   const [showAccountForm, setShowAccountForm] = useState(false);
@@ -28,89 +30,81 @@ export default function ManageAccounts() {
   const [showDeleteIcon, setShowDeleteIcon] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState(false);
-  const [showPinContainer, setShowPinContainer] = useState({
-    show: false,
-    account: null,
-  });
+  const [showPinContainer, setShowPinContainer] = useState({ show: false, account: null });
 
-  const { user } = useAuth();
+  const { user, authLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
-  async function getAllAccounts() {
-    try {
-      console.log("Fetching accounts for user ID:", user?.id);
-      const res = await fetch(`/api/account/get-all-accounts?id=${user?.id}`);
-      const data = await res.json();
-      console.log("GET accounts response:", data);
+  useEffect(() => {
+    const stored = sessionStorage.getItem("loggedInAccount") || localStorage.getItem("loggedInAccount");
+    if (stored && !loggedInAccount) {
+      setLoggedInAccount(JSON.parse(stored));
+      sessionStorage.setItem("loggedInAccount", stored); // restore session
+    }
+  }, [loggedInAccount]);
 
-      if (data?.data?.length) {
+  const getAllAccounts = async () => {
+    const uid =
+      user?.id ||
+      localStorage.getItem("userId") ||
+      JSON.parse(localStorage.getItem("loggedInAccount"))?.uid;
+
+    if (!uid || uid === "undefined") {
+      console.warn("🚫 Missing UID for account fetch");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/account/get-all-accounts?uid=${uid}`);
+      const data = await res.json();
+
+      if (data.success && Array.isArray(data.data)) {
         setAccounts(data.data);
+        console.log("✅ Accounts loaded:", data.data);
+      } else {
+        console.warn("⚠️ No accounts found");
       }
     } catch (err) {
-      console.error("Error fetching accounts:", err);
+      console.error("❌ Error loading accounts:", err);
     } finally {
       setPageLoader(false);
     }
-  }
+  };
 
   useEffect(() => {
-    if (user?.id) {
+    if (!authLoading && user?.id) {
       getAllAccounts();
-    } else {
-      console.warn("User ID not found during useEffect.");
     }
-  }, [user?.id]);
-  
-  useEffect(() => {
-  if (user) {
-    console.log("✅ Authenticated User:", user);
-  } else {
-    console.warn("⚠️ No user found in context");
-  }
-}, [user]);
+  }, [authLoading, user?.id]);
 
-  async function handleSave() {
-    console.log("Saving account with form data:", formData);
-    console.log("Using UID:", user?.id);
-
+  const handleSave = async () => {
     try {
       const res = await fetch("/api/account/add-account", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          uid: user?.id,
-          name: formData.name,
-          pin: formData.pin,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: user?.id, name: formData.name, pin: formData.pin }),
       });
 
       const data = await res.json();
-      console.log("POST add-account response:", data);
-
       if (data.success) {
         setShowAccountForm(false);
-        setFormData({ name: "", pin: "" });
+        setFormData(initialFormData);
         getAllAccounts();
       } else {
         console.error("Error saving account:", data.message);
       }
     } catch (err) {
-      console.error("Unexpected error saving account:", err);
+      console.error("Unexpected error:", err);
     }
-  }
+  };
 
-  async function handleRemoveAccount(getItem) {
-    console.log("Removing account:", getItem);
+  const handleRemoveAccount = async (account) => {
     try {
-      const res = await fetch(`/api/account/remove-account?id=${getItem._id}`, {
+      const res = await fetch(`/api/account/remove-account?id=${account._id}`, {
         method: "DELETE",
       });
       const data = await res.json();
-      console.log("DELETE remove-account response:", data);
-
       if (data.success) {
         getAllAccounts();
         setShowDeleteIcon(false);
@@ -118,129 +112,131 @@ export default function ManageAccounts() {
     } catch (err) {
       console.error("Error removing account:", err);
     }
-  }
+  };
 
-async function handlePinSubmit(pinValue) {
+  const handlePinSubmit = async (pinValue) => {
   try {
     setPageLoader(true);
 
-    const response = await fetch("/api/account/login-to-account", {
+    const res = await fetch("/api/account/login-to-account", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        uid: user?.id,
-        accountId: showPinContainer.account._id,
+        uid: user?.id, // main user ID
+        accountId: showPinContainer.account._id, // sub-account ID
         pin: pinValue,
       }),
     });
 
-    const data = await response.json();
+    const data = await res.json();
 
     if (data.success) {
-      // ✅ Save the logged in account
-      setLoggedInAccount(showPinContainer.account);
-      sessionStorage.setItem(
-        "loggedInAccount",
-        JSON.stringify(showPinContainer.account)
-      );
+      const subAccount = showPinContainer.account;
 
-      // ✅ Close the PIN container
+      // ✅ Store the selected sub-account
+      sessionStorage.setItem("loggedInAccount", JSON.stringify(subAccount));
+      localStorage.setItem("loggedInAccount", JSON.stringify(subAccount));
+      setLoggedInAccount(subAccount);
+
+      // ✅ Clean up state
       setShowPinContainer({ show: false, account: null });
-      setPin("");
       setPinError(false);
+      setPin("");
 
-      // ✅ Redirect the user
-      if (pathname.includes("my-list")) {
-        router.push(`/my-list/${user?.id}/${showPinContainer.account._id}`);
-      } else {
-        router.push("/browse"); // Or whatever page you want to load
-      }
+      // ✅ Hard reload to ensure fresh state
+      const redirectPath = pathname.includes("my-list")
+        ? `/my-list/${user?.id}/${subAccount._id}`
+        : "/browse";
+
+      window.location.href = redirectPath;
     } else {
-      // ❌ Wrong PIN
       setPinError(true);
       setPin("");
     }
-  } catch (error) {
-    console.error("Error submitting PIN:", error);
+  } catch (err) {
+    console.error("❌ PIN verification failed:", err);
     setPinError(true);
   } finally {
     setPageLoader(false);
   }
-}
+};
 
   if (pageLoader) return <CircleLoader />;
 
-  return (
-    <div className="min-h-screen flex justify-center flex-col items-center relative">
-      <div className="flex justify-center flex-col items-center">
-        <h1 className="text-white font-bold text-[54px] my-[36px]">Who's Watching?</h1>
-        <ul className="flex p-0 my-[25px] flex-wrap justify-center gap-4">
-          {accounts?.length > 0 &&
-            accounts.map((item) => (
-              <li
-                key={item._id}
-                onClick={
-                  showDeleteIcon
-                    ? null
-                    : () => setShowPinContainer({ show: true, account: item })
-                }
-                className="max-w-[200px] w-[155px] cursor-pointer flex flex-col items-center gap-3"
-              >
-                <div className="relative">
-                  <img
-                    src="https://occ-0-2611-3663.1.nflxso.net/dnm/api/v6/K6hjPJd6cR6FpVELC5Pd6ovHRSk/AAAABfNXUMVXGhnCZwPI1SghnGpmUgqS_J-owMff-jig42xPF7vozQS1ge5xTgPTzH7ttfNYQXnsYs4vrMBaadh4E6RTJMVepojWqOXx.png?r=1d4"
-                    alt={item.name}
-                    className="rounded object-cover w-[155px] h-[155px]"
-                  />
-                  {showDeleteIcon && (
-                    <div
-                      onClick={() => handleRemoveAccount(item)}
-                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 cursor-pointer"
-                    >
-                      <TrashIcon width={30} height={30} color="black" />
-                    </div>
-                  )}
-                </div>
-                <span className="mb-4 text-white">{item.name}</span>
-              </li>
-            ))}
+ return (
+    <AuthBackground>
+      <div className="min-h-screen flex justify-center items-center px-6 py-16 relative">
+        <div className="w-full max-w-4xl bg-black bg-opacity-60 p-8 rounded-lg shadow-2xl">
+          <h1 className="text-white font-extrabold text-4xl md:text-5xl text-center mb-8 tracking-wide uppercase">
+            Who's Watching?
+          </h1>
 
-          {accounts?.length < 4 && (
-            <li
-              onClick={() => setShowAccountForm(!showAccountForm)}
-              className="border text-black bg-[#e5b109] font-bold text-lg border-black rounded w-[155px] h-[155px] flex justify-center items-center cursor-pointer"
+          <ul className="flex flex-wrap justify-center gap-6">
+  {accounts?.length > 0 &&
+    accounts.map((item) => (
+      <li
+        key={item._id}
+        onClick={() =>
+          !showDeleteIcon && setShowPinContainer({ show: true, account: item })
+        }
+        className="w-[155px] h-[155px] bg-black bg-opacity-40 border border-white rounded-md shadow-md flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform duration-300"
+      >
+        <div className="relative w-full h-[80%] overflow-hidden">
+          <img
+            src="https://occ-0-2611-3663.1.nflxso.net/dnm/api/v6/K6hjPJd6cR6FpVELC5Pd6ovHRSk/AAAABfNXUMVXGhnCZwPI1SghnGpmUgqS_J-owMff-jig42xPF7vozQS1ge5xTgPTzH7ttfNYQXnsYs4vrMBaadh4E6RTJMVepojWqOXx.png?r=1d4"
+            alt={item.name}
+            className="w-full h-full object-cover rounded-md"
+          />
+          {showDeleteIcon && (
+            <div
+              onClick={() => handleRemoveAccount(item)}
+              className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10"
             >
-              Add Account
-            </li>
+              <TrashIcon width={30} height={30} color="white" />
+            </div>
           )}
-        </ul>
-
-        <div className="text-center">
-          <button
-            onClick={() => setShowDeleteIcon(!showDeleteIcon)}
-            className="border border-gray-100 text-white px-6 py-2 text-sm"
-          >
-            Manage Profiles
-          </button>
         </div>
+        <span className="mt-2 text-white font-semibold">{item.name}</span>
+      </li>
+    ))}
+
+  {accounts?.length < 4 && (
+    <li
+      onClick={() => setShowAccountForm(!showAccountForm)}
+      className="w-[155px] h-[155px] border-2 border-dashed border-gray-400 flex items-center justify-center text-white text-5xl font-extrabold cursor-pointer hover:bg-[#e5b109] hover:text-black transition-colors duration-300 rounded-md"
+    >
+      +
+    </li>
+  )}
+</ul>
+
+          <div className="text-center mt-6">
+            <button
+              onClick={() => setShowDeleteIcon(!showDeleteIcon)}
+              className="border border-gray-100 text-white px-6 py-2 text-sm rounded-full hover:bg-white hover:text-black transition-colors"
+            >
+              {showDeleteIcon ? "Cancel" : "Manage Profiles"}
+            </button>
+          </div>
+        </div>
+
+        <PinContainer
+          pin={pin}
+          setPin={setPin}
+          pinError={pinError}
+          setPinError={setPinError}
+          showPinContainer={showPinContainer.show}
+          setShowPinContainer={setShowPinContainer}
+          handlePinSubmit={handlePinSubmit}
+        />
+
+        <AccountForm
+          handleSave={handleSave}
+          formData={formData}
+          setFormData={setFormData}
+          showAccountForm={showAccountForm}
+        />
       </div>
-
-      <PinContainer
-        pin={pin}
-        setPin={setPin}
-        pinError={pinError}
-        setPinError={setPinError}
-        showPinContainer={showPinContainer.show}
-        setShowPinContainer={setShowPinContainer}
-        handlePinSubmit={handlePinSubmit}
-      />
-
-      <AccountForm
-        handleSave={handleSave}
-        formData={formData}
-        setFormData={setFormData}
-        showAccountForm={showAccountForm}
-      />
-    </div>
+    </AuthBackground>
   );
 }

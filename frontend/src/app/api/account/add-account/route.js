@@ -45,6 +45,7 @@ export async function POST(req) {
       name,
       pin: hashedPin,
     });
+    console.log("✅ Account created with UID:", uid);
 
     return NextResponse.json({
       success: true,

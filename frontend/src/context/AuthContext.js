@@ -9,6 +9,27 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  // 🔄 Utility to get current logged-in sub-account (profile)
+  const getLoggedInAccount = () =>
+    JSON.parse(sessionStorage.getItem("loggedInAccount")) || null;
+
+  // 🔄 Utility to get UID
+  const getUserId = () => user?.id || localStorage.getItem("userId");
+
+  // 🔐 Load fallback from storage if API fails
+const loadUserFromStorage = () => {
+  const storedUserId =
+    localStorage.getItem("userId") || sessionStorage.getItem("userId");
+
+  if (storedUserId) {
+    setUser({ id: storedUserId });
+    console.log("📦 Loaded main user ID from storage:", storedUserId);
+  } else {
+    setUser(null);
+    console.error("❌ No user ID found in storage.");
+  }
+};
+
   const loadUser = async () => {
     try {
       console.log("🔄 Attempting to fetch user profile from API...");
@@ -18,35 +39,15 @@ export const AuthProvider = ({ children }) => {
       if (res?.id || res?._id) {
         const userId = res.id || res._id;
         setUser({ id: userId, ...res });
-
+        sessionStorage.setItem("userId", userId);
         localStorage.setItem("userId", userId);
-        sessionStorage.setItem("loggedInAccount", JSON.stringify(res));
-
         console.log("🎯 User ID found and stored:", userId);
       } else {
         throw new Error("❌ User profile missing ID");
       }
     } catch (err) {
       console.warn("⚠️ Failed to fetch user profile from API. Falling back to storage.");
-      const stored =
-        sessionStorage.getItem("loggedInAccount") ||
-        localStorage.getItem("loggedInAccount");
-
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const id = parsed.id || parsed._id || localStorage.getItem("userId");
-
-        if (id) {
-          setUser({ id, ...parsed });
-          console.log("📦 Loaded user from storage with ID:", id);
-        } else {
-          setUser(null);
-          console.error("🚫 Stored user missing ID");
-        }
-      } else {
-        console.error("🛑 No user found in session/local storage.");
-        setUser(null);
-      }
+      loadUserFromStorage();
     } finally {
       setAuthLoading(false);
       console.log("✅ Finished loading user.");
@@ -67,6 +68,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("userId");
 
     console.log("👋 User logged out and all data cleared.");
+    window.location.href = "/auth/login";
   };
 
   useEffect(() => {
@@ -74,7 +76,16 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, setUser, authLoading, handleLogout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        authLoading,
+        handleLogout,
+        getLoggedInAccount,
+        getUserId,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

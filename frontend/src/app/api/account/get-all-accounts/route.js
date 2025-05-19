@@ -1,24 +1,25 @@
-import connectToDB from "@/database"; // ✅ Add this
+import connectToDB from "@/database";
 import Account from "@/models/Account";
-import { NextResponse } from "next/server"; // ✅ Add this
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req) {
   try {
-    await connectToDB(); // ✅ Ensure DB connection is established
+    await connectToDB();
 
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
+    const uid = searchParams.get("uid") || searchParams.get("id"); // ✅ fallback support
+    console.log("📡 GET all accounts for UID:", uid);
 
-    if (!id || id === "undefined") {
+    if (!uid || uid === "undefined") {
       return NextResponse.json(
         { success: false, message: "Missing or invalid user ID" },
         { status: 400 }
       );
     }
 
-    const getAllAccounts = await Account.find({ uid: id });
+    const getAllAccounts = await Account.find({ uid });
 
     console.log("✅ Accounts retrieved:", getAllAccounts);
 

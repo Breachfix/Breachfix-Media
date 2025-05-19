@@ -42,30 +42,36 @@ export default function PinContainer({
     }
   }, [pin]);
 
+
   return (
     showPinContainer && (
-      <div className="z-[100] bg-[#141414] flex-col min-h-screen absolute left-0 top-0 justify-center flex items-center right-0">
-        <span
+      <div className="z-[1000] fixed inset-0 bg-black bg-opacity-90 backdrop-blur-sm flex flex-col items-center justify-center transition-all duration-300">
+        <button
           onClick={() => {
             setShowPinContainer({ show: false, account: null });
             setPin("");
             setPinError(false);
             setDigits(["", "", "", ""]);
           }}
-          className="cursor-pointer absolute top-[50px] right-[40px] text-white"
+          className="absolute top-6 right-6 text-white text-3xl hover:text-gray-300 transition"
+          aria-label="Close PIN Prompt"
         >
-          &#10005;
-        </span>
+          &times;
+        </button>
 
-        <h1 className="text-gray-400 font-bold text-[16px] mb-4">
-          Profile Lock is currently ON
+        <h1 className="text-gray-400 font-bold text-base sm:text-lg mb-4 tracking-wide">
+          Profile Lock is ON
         </h1>
 
-        <h2 className={`font-bold text-[30px] mb-6 ${pinError ? "text-[#e6b209]" : "text-white"}`}>
-          {pinError ? "Whoops, wrong PIN. Please try again" : "Enter your PIN to access this profile"}
+        <h2
+          className={`text-center font-semibold text-2xl sm:text-3xl md:text-4xl mb-8 px-4 ${
+            pinError ? "text-[#e6b109]" : "text-white"
+          }`}
+        >
+          {pinError ? "Whoops, wrong PIN. Try again." : "Enter your PIN to access this profile"}
         </h2>
 
-        <div className="flex gap-3">
+        <div className="flex gap-4">
           {[0, 1, 2, 3].map((_, index) => (
             <input
               key={index}
@@ -73,7 +79,7 @@ export default function PinContainer({
               type="text"
               inputMode="numeric"
               maxLength={1}
-              className="text-center text-white bg-[#222] border border-white rounded w-[60px] h-[60px] text-2xl"
+              className="w-16 h-16 text-center text-white text-3xl bg-[#1f1f1f] border border-white rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all"
               value={digits[index]}
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(e, index)}
@@ -84,3 +90,5 @@ export default function PinContainer({
     )
   );
 }
+
+
