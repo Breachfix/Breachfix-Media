@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import dbConnect from "@/lib/db";
+import connectToDB from "@/database";
 import MediaSubscription from "@/models/MediaSubscription";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);

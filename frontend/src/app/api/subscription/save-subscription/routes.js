@@ -1,7 +1,7 @@
 // File: /src/app/api/subscription/save-subscription/route.js
 
 import { NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb";
+import clientPromise from "@/lib/mongodb"; //use import connectToDB from "@/database";
 import { ObjectId } from "mongodb";
 
 export async function POST(req) {

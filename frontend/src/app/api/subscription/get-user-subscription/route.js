@@ -1,7 +1,7 @@
 // File: /app/api/subscription/get-user-subscription/route.js
 
 import { NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb";
+import clientPromise from "@/lib/mongodb"; // use import connectToDB from "@/database";
 import MediaSubscription from "@/models/MediaSubscription";
 
 export async function GET(req) {
