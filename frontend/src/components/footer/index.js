@@ -1,19 +1,28 @@
-import { FaXTwitter, FaInstagram, FaFacebookF, FaGithub, FaYoutube, FaTiktok, FaMedium } from "react-icons/fa6";
+import {
+  FaXTwitter,
+  FaInstagram,
+  FaFacebookF,
+  FaGithub,
+  FaYoutube,
+  FaTiktok,
+  FaMedium,
+} from "react-icons/fa6";
 
 const platforms = [
-  { name: 'x', url: 'https://x.com/NtihanirahoJack', color: '#ffffff', icon: <FaXTwitter /> },
-  { name: 'instagram', url: 'https://www.instagram.com/breachfix/', color: '#ffffff', icon: <FaInstagram /> },
-  { name: 'facebook', url: 'https://www.facebook.com/profile.php?id=61559916151082&sk=grid', color: '#ffffff', icon: <FaFacebookF /> },
-  { name: 'github', url: 'https://github.com/Breachfix', color: '#ffffff', icon: <FaGithub /> },
-  { name: 'youtube', url: 'https://www.youtube.com/@Breachfixhealth', color: '#ffffff', icon: <FaYoutube /> },
-  { name: 'tiktok', url: 'https://www.tiktok.com/@breachfixhealth', color: '#ffffff', icon: <FaTiktok /> },
-  { name: 'medium', url: 'https://medium.com/@breachfix', color: '#ffffff', icon: <FaMedium /> },
+  { name: 'x', url: 'https://x.com/NtihanirahoJack', color: '#1DA1F2', icon: <FaXTwitter /> },
+  { name: 'instagram', url: 'https://www.instagram.com/breachfix/', color: '#E1306C', icon: <FaInstagram /> },
+  { name: 'facebook', url: 'https://www.facebook.com/profile.php?id=61559916151082&sk=grid', color: '#1877F2', icon: <FaFacebookF /> },
+  { name: 'github', url: 'https://github.com/Breachfix', color: '#181717', icon: <FaGithub /> },
+  { name: 'youtube', url: 'https://www.youtube.com/@Breachfixhealth', color: '#FF0000', icon: <FaYoutube /> },
+  { name: 'tiktok', url: 'https://www.tiktok.com/@breachfixhealth', color: '#010101', icon: <FaTiktok /> },
+  { name: 'medium', url: 'https://medium.com/@breachfix', color: '#00AB6C', icon: <FaMedium /> },
 ];
 
 export default function Footer() {
   return (
-    <footer className="bg-black text-gray-400 px-6 sm:px-10 md:px-20 lg:px-28 py-10 text-sm font-light tracking-wide font-sans">
-      <div className="max-w-screen-xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-10">
+    <footer className="bg-[#181818] text-gray-400 px-6 sm:px-10 md:px-20 lg:px-28 py-14 text-sm font-light tracking-wide font-sans">
+      <div className="max-w-screen-xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-10 gap-x-6">
+        {/* About */}
         <div>
           <h4 className="text-white mb-4 font-medium text-base">About</h4>
           <ul className="space-y-2">
@@ -23,6 +32,7 @@ export default function Footer() {
           </ul>
         </div>
 
+        {/* Media */}
         <div>
           <h4 className="text-white mb-4 font-medium text-base">Media</h4>
           <ul className="space-y-2">
@@ -32,6 +42,7 @@ export default function Footer() {
           </ul>
         </div>
 
+        {/* Support */}
         <div>
           <h4 className="text-white mb-4 font-medium text-base">Support</h4>
           <ul className="space-y-2">
@@ -41,18 +52,21 @@ export default function Footer() {
           </ul>
         </div>
 
+        {/* Connect */}
         <div>
           <h4 className="text-white mb-4 font-medium text-base">Connect</h4>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-4">
             {platforms.map((platform, index) => (
               <a
                 key={index}
                 href={platform.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white hover:scale-110 transition-transform duration-200"
-                style={{ color: platform.color }}
                 aria-label={platform.name}
+                className="transition-transform hover:scale-110"
+                style={{ color: "white" }}
+                onMouseEnter={(e) => e.currentTarget.style.color = platform.color}
+                onMouseLeave={(e) => e.currentTarget.style.color = "white"}
               >
                 <span className="text-2xl">{platform.icon}</span>
               </a>

@@ -5,7 +5,6 @@ import GlobalState from "@/context";
 import { AuthProvider } from "@/context/AuthContext";
 
 
-
 // Load Work Sans (main font)
 const workSans = Work_Sans({
   subsets: ["latin"],

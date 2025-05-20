@@ -36,7 +36,6 @@ userid.interceptors.request.use((config) => {
   }
   return config;
 });
-const BASE_URL = "https://api.themoviedb.org/3";
 
 export const getTrendingMedias = async (type) => {
   try {

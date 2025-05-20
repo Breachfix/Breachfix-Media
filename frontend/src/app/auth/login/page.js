@@ -15,7 +15,7 @@ export default function LoginPage() {
       const res = await login({ email, password });
       if (res.success) {
         sessionStorage.setItem("loggedInAccount", JSON.stringify(res.user));
-        window.location.href = "/browse";
+        window.location.href = "/browser";
       } else {
         // 🔁 Redirect to error page
         router.push(`/auth/error?error=${encodeURIComponent(res.message || "Login failed")}`);

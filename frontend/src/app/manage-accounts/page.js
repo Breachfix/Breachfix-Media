@@ -40,7 +40,7 @@ export default function ManageAccounts() {
     const stored = sessionStorage.getItem("loggedInAccount") || localStorage.getItem("loggedInAccount");
     if (stored && !loggedInAccount) {
       setLoggedInAccount(JSON.parse(stored));
-      sessionStorage.setItem("loggedInAccount", stored); // restore session
+      sessionStorage.setItem("loggedInAccount", stored);
     }
   }, [loggedInAccount]);
 
@@ -115,55 +115,51 @@ export default function ManageAccounts() {
   };
 
   const handlePinSubmit = async (pinValue) => {
-  try {
-    setPageLoader(true);
+    try {
+      setPageLoader(true);
 
-    const res = await fetch("/api/account/login-to-account", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        uid: user?.id, // main user ID
-        accountId: showPinContainer.account._id, // sub-account ID
-        pin: pinValue,
-      }),
-    });
+      const res = await fetch("/api/account/login-to-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user?.id,
+          accountId: showPinContainer.account._id,
+          pin: pinValue,
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.success) {
-      const subAccount = showPinContainer.account;
+      if (data.success) {
+        const subAccount = showPinContainer.account;
+        sessionStorage.setItem("loggedInAccount", JSON.stringify(subAccount));
+        localStorage.setItem("loggedInAccount", JSON.stringify(subAccount));
+        setLoggedInAccount(subAccount);
 
-      // ✅ Store the selected sub-account
-      sessionStorage.setItem("loggedInAccount", JSON.stringify(subAccount));
-      localStorage.setItem("loggedInAccount", JSON.stringify(subAccount));
-      setLoggedInAccount(subAccount);
+        setShowPinContainer({ show: false, account: null });
+        setPinError(false);
+        setPin("");
 
-      // ✅ Clean up state
-      setShowPinContainer({ show: false, account: null });
-      setPinError(false);
-      setPin("");
+        const redirectPath = pathname.includes("my-list")
+          ? `/my-list/${user?.id}/${subAccount._id}`
+          : "/browse";
 
-      // ✅ Hard reload to ensure fresh state
-      const redirectPath = pathname.includes("my-list")
-        ? `/my-list/${user?.id}/${subAccount._id}`
-        : "/browse";
-
-      window.location.href = redirectPath;
-    } else {
+        window.location.href = redirectPath;
+      } else {
+        setPinError(true);
+        setPin("");
+      }
+    } catch (err) {
+      console.error("❌ PIN verification failed:", err);
       setPinError(true);
-      setPin("");
+    } finally {
+      setPageLoader(false);
     }
-  } catch (err) {
-    console.error("❌ PIN verification failed:", err);
-    setPinError(true);
-  } finally {
-    setPageLoader(false);
-  }
-};
+  };
 
   if (pageLoader) return <CircleLoader />;
 
- return (
+  return (
     <AuthBackground>
       <div className="min-h-screen flex justify-center items-center px-6 py-16 relative">
         <div className="w-full max-w-4xl bg-black bg-opacity-60 p-8 rounded-lg shadow-2xl">
@@ -172,54 +168,64 @@ export default function ManageAccounts() {
           </h1>
 
           <ul className="flex flex-wrap justify-center gap-6">
-  {accounts?.length > 0 &&
-    accounts.map((item) => (
-      <li
-        key={item._id}
-        onClick={() =>
-          !showDeleteIcon && setShowPinContainer({ show: true, account: item })
-        }
-        className="w-[155px] h-[155px] bg-black bg-opacity-40 border border-white rounded-md shadow-md flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform duration-300"
-      >
-        <div className="relative w-full h-[80%] overflow-hidden">
-          <img
-            src="https://occ-0-2611-3663.1.nflxso.net/dnm/api/v6/K6hjPJd6cR6FpVELC5Pd6ovHRSk/AAAABfNXUMVXGhnCZwPI1SghnGpmUgqS_J-owMff-jig42xPF7vozQS1ge5xTgPTzH7ttfNYQXnsYs4vrMBaadh4E6RTJMVepojWqOXx.png?r=1d4"
-            alt={item.name}
-            className="w-full h-full object-cover rounded-md"
-          />
-          {showDeleteIcon && (
-            <div
-              onClick={() => handleRemoveAccount(item)}
-              className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10"
-            >
-              <TrashIcon width={30} height={30} color="white" />
-            </div>
-          )}
-        </div>
-        <span className="mt-2 text-white font-semibold">{item.name}</span>
-      </li>
-    ))}
+            {accounts?.length > 0 &&
+              accounts.map((item) => (
+                <li
+                  key={item._id}
+                  onClick={() =>
+                    !showDeleteIcon && setShowPinContainer({ show: true, account: item })
+                  }
+                  className="w-[155px] h-[155px] bg-black bg-opacity-40 border border-white rounded-md shadow-md flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform duration-300"
+                >
+                  <div className="relative w-full h-[80%] overflow-hidden">
+                    <img
+                      src="https://occ-0-2611-3663.1.nflxso.net/dnm/api/v6/K6hjPJd6cR6FpVELC5Pd6ovHRSk/AAAABfNXUMVXGhnCZwPI1SghnGpmUgqS_J-owMff-jig42xPF7vozQS1ge5xTgPTzH7ttfNYQXnsYs4vrMBaadh4E6RTJMVepojWqOXx.png?r=1d4"
+                      alt={item.name}
+                      className="w-full h-full object-cover rounded-md"
+                    />
+                    {showDeleteIcon && (
+                      <div
+                        onClick={() => handleRemoveAccount(item)}
+                        className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10"
+                      >
+                        <TrashIcon width={30} height={30} color="white" />
+                      </div>
+                    )}
+                  </div>
+                  <span className="mt-2 text-white font-semibold">{item.name}</span>
+                </li>
+              ))}
 
-  {accounts?.length < 4 && (
-    <li
-      onClick={() => setShowAccountForm(!showAccountForm)}
-      className="w-[155px] h-[155px] border-2 border-dashed border-gray-400 flex items-center justify-center text-white text-5xl font-extrabold cursor-pointer hover:bg-[#e5b109] hover:text-black transition-colors duration-300 rounded-md"
-    >
-      +
-    </li>
-  )}
-</ul>
+            {accounts?.length < 4 && (
+              <li
+                onClick={() => setShowAccountForm(!showAccountForm)}
+                className="w-[155px] h-[155px] border-2 border-dashed border-gray-400 flex items-center justify-center text-white text-5xl font-extrabold cursor-pointer hover:bg-[#e5b109] hover:text-black transition-colors duration-300 rounded-md"
+              >
+                +
+              </li>
+            )}
+          </ul>
 
-          <div className="text-center mt-6">
+          {/* Buttons Below */}
+          <div className="text-center mt-6 space-y-4">
             <button
               onClick={() => setShowDeleteIcon(!showDeleteIcon)}
               className="border border-gray-100 text-white px-6 py-2 text-sm rounded-full hover:bg-white hover:text-black transition-colors"
             >
               {showDeleteIcon ? "Cancel" : "Manage Profiles"}
             </button>
+
+            {/* 💡 Upgrade Button */}
+            <button
+              onClick={() => router.push("/subscribe")}
+              className="border border-yellow-500 text-yellow-400 px-6 py-2 text-sm rounded-full hover:bg-yellow-500 hover:text-black transition-colors"
+            >
+              Upgrade Your Subscription
+            </button>
           </div>
         </div>
 
+        {/* Modals */}
         <PinContainer
           pin={pin}
           setPin={setPin}
