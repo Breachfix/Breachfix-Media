@@ -7,6 +7,7 @@ import { GlobalContext } from "@/context";
 import { getAllfavorites, getTVorMoviesByGenre } from "@/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useContext, useEffect } from "react";
+import RequireAuth from "@/components/RequireAuth";
 
 export default function TV() {
   const { user } = useAuth();
@@ -84,8 +85,10 @@ export default function TV() {
   if (pageLoader) return <CircleLoader />;
 
   return (
+    <RequireAuth>
     <main className="flex min-h-screen flex-col">
       <CommonLayout mediaData={mediaData} />
     </main>
+    </RequireAuth>
   );
 }

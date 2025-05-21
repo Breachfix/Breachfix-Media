@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import ReactPlayer from "react-player";
+import RequireAuth from "@/components/RequireAuth";
 
 export default function Watch() {
   const [mediaDetails, setMediaDetails] = useState(null);
@@ -41,6 +42,7 @@ export default function Watch() {
   if (pageLoader || !mediaDetails) return <CircleLoader />;
 
   return (
+    <RequireAuth>
     <motion.div
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -59,5 +61,6 @@ export default function Watch() {
         controls
       />
     </motion.div>
+    </RequireAuth>
   );
 }

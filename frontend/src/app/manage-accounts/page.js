@@ -9,6 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 import AccountForm from "@/components/account-form";
 import PinContainer from "@/components/pin-container";
 import AuthBackground from "@/components/AuthBackground";
+import RequireAuth from "@/components/RequireAuth";
 
 const initialFormData = {
   name: "",
@@ -160,6 +161,7 @@ export default function ManageAccounts() {
   if (pageLoader) return <CircleLoader />;
 
   return (
+    <RequireAuth>
     <AuthBackground>
       <div className="min-h-screen flex justify-center items-center px-6 py-16 relative">
         <div className="w-full max-w-4xl bg-black bg-opacity-60 p-8 rounded-lg shadow-2xl">
@@ -244,5 +246,6 @@ export default function ManageAccounts() {
         />
       </div>
     </AuthBackground>
+    </RequireAuth>
   );
 }

@@ -1,8 +1,11 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
+import RequireAuth from "@/components/RequireAuth";
 
 export default function SubscribeSuccessPage() {
   const searchParams = useSearchParams();
@@ -25,6 +28,7 @@ export default function SubscribeSuccessPage() {
   }
 
   return (
+    <RequireAuth>
     <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-tr from-[#0f0f0f] via-[#1e1e1e] to-[#ce1254] text-white px-6">
       {/* Glow effect */}
       <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_30%,#ce1254_0%,transparent_40%)] opacity-20 -z-10 blur-3xl" />
@@ -48,5 +52,6 @@ export default function SubscribeSuccessPage() {
         </a>
       </div>
     </div>
+    </RequireAuth>
   );
 }

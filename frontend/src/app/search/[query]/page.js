@@ -10,6 +10,7 @@ import { useContext, useEffect } from "react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/navbar";
 import MediaItem from "@/components/media-item";
+import RequireAuth from "@/components/RequireAuth";
 
 export default function Search() {
   const {
@@ -74,6 +75,7 @@ const { user } = useAuth();
   if (pageLoader) return <CircleLoader />;
 
   return (
+    <RequireAuth>
     <motion.div
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
@@ -97,5 +99,6 @@ const { user } = useAuth();
         </div>
       </div>
     </motion.div>
+    </RequireAuth>
   );
 }

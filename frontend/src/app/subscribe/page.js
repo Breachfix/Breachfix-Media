@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AuthNavbar from "@/components/AuthNavbar";
 import { useAuth } from "@/context/AuthContext";
+import RequireAuth from "@/components/RequireAuth";
 
 export default function SubscribePage() {
   const [selectedPlan, setSelectedPlan] = useState("Basic");
@@ -175,6 +176,7 @@ export default function SubscribePage() {
 
 
   return (
+    <RequireAuth>
     <div
       className="min-h-screen text-white font-sans bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url('/auth-navbar.jpg')` }}
@@ -460,5 +462,6 @@ export default function SubscribePage() {
         </div>
       </div>
     </div>
+    </RequireAuth>
   );
 }

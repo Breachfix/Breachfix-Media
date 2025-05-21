@@ -12,6 +12,7 @@ import {
 } from "@/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useContext, useEffect } from "react";
+import RequireAuth from "@/components/RequireAuth";
 
 export default function Browse() {
   const {
@@ -106,8 +107,10 @@ export default function Browse() {
   console.log(mediaData);
 
   return (
+    <RequireAuth>
     <main className="flex min-h-screen flex-col">
       <CommonLayout mediaData={mediaData} />
     </main>
+    </RequireAuth>
   );
 }

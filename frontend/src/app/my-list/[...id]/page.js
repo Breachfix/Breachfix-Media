@@ -11,6 +11,7 @@ import MediaItem from "@/components/media-item";
 import CircleLoader from "@/components/circle-loader";
 import UnauthPage from "@/components/unauth-page";
 import { useParams } from "next/navigation";
+import RequireAuth from "@/components/RequireAuth";
 
 export default function MyList() {
 
@@ -56,6 +57,7 @@ const params = useParams();
   if (pageLoader) return <CircleLoader />;
 
   return (
+    <RequireAuth>
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -83,5 +85,6 @@ const params = useParams();
         </div>
       </div>
     </motion.div>
+    </RequireAuth>
   );
 }

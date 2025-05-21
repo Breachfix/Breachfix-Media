@@ -9,6 +9,7 @@ import { GlobalContext } from "@/context";
 import { useAuth } from "@/context/AuthContext";
 import { getAllfavorites } from "@/utils";
 import Navbar from "@/components/navbar";
+import RequireAuth from "@/components/RequireAuth";
 
 export default function TVShowDetailPage() {
   const { id } = useParams();
@@ -79,6 +80,7 @@ export default function TVShowDetailPage() {
     "/images/fallback.jpg";
 
   return (
+    <RequireAuth>
     <div className="flex flex-col min-h-screen bg-black">
       <Navbar />
       <div className="p-4 space-y-6 text-white">
@@ -177,5 +179,6 @@ export default function TVShowDetailPage() {
         </div>
       </div>
     </div>
+    </RequireAuth>
   );
 }

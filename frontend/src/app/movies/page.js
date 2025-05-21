@@ -7,6 +7,7 @@ import { GlobalContext } from "@/context";
 import { getAllfavorites, getTVorMoviesByGenre } from "@/utils";
 import { useAuth } from "@/context/AuthContext"; // ✅ this is your custom context
 import { useContext, useEffect } from "react";
+import RequireAuth from "@/components/RequireAuth";
 
 export default function medias() {
   const {
@@ -87,8 +88,10 @@ export default function medias() {
   console.log(mediaData, "mediaData");
 
   return (
+    <RequireAuth>
     <main className="flex min-h-screen flex-col">
       <CommonLayout mediaData={mediaData} />
     </main>
+    </RequireAuth>
   );
 }

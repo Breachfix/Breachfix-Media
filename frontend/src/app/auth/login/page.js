@@ -11,19 +11,41 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    try {
-      const res = await login({ email, password });
-      if (res.success) {
-        sessionStorage.setItem("loggedInAccount", JSON.stringify(res.user));
-        window.location.href = "/browser";
-      } else {
-        // 🔁 Redirect to error page
-        router.push(`/auth/error?error=${encodeURIComponent(res.message || "Login failed")}`);
+  try {
+    const res = await login({ email, password });
+
+    if (res.success) {
+      const user = res.user;
+      sessionStorage.setItem("loggedInAccount", JSON.stringify(user));
+      localStorage.setItem("authToken", res.token); // if needed
+      localStorage.setItem("userId", user.id);
+
+      const redirectPath = sessionStorage.getItem("redirectAfterLogin");
+
+      // 🧠 Case 1: Coming from a protected route
+      if (redirectPath) {
+        sessionStorage.removeItem("redirectAfterLogin");
+        window.location.href = redirectPath;
+        return;
       }
-    } catch (err) {
-      router.push(`/auth/error?error=${encodeURIComponent(err.message || "Login error")}`);
+
+      // 🧠 Case 2: No subscription → /subscribe
+      if (!user.subscription || user.subscription.status !== "active") {
+        window.location.href = "/subscribe";
+        return;
+      }
+
+      // ✅ Default: has subscription → /browse
+      window.location.href = "/browse";
+
+    } else {
+      router.push(`/auth/error?error=${encodeURIComponent(res.message || "Login failed")}`);
     }
-  };
+
+  } catch (err) {
+    router.push(`/auth/error?error=${encodeURIComponent(err.message || "Login error")}`);
+  }
+};
 
   return (
     <AuthBackground>
