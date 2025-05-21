@@ -54,6 +54,12 @@ const loadUserFromStorage = () => {
     }
   };
 
+  // 🔄 Manually trigger user reload after login
+  const reloadUser = async () => {
+    setAuthLoading(true);
+    await loadUser();
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -84,6 +90,7 @@ const loadUserFromStorage = () => {
         handleLogout,
         getLoggedInAccount,
         getUserId,
+        reloadUser
       }}
     >
       {children}
