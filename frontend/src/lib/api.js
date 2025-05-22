@@ -58,7 +58,7 @@ export const fetchUserProfile = async () => {
     const response = await api.get('/auth/profile');
     return response.data;
   } catch (error) {
-    console.error('Error fetching user profile:', error.response?.data || error.message);
+    console.error('Error fetching user profile:', error.response?.data || error.message || err);
     throw error;
   }
 };
