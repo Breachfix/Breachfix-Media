@@ -18,7 +18,7 @@ var nextConfig = {
               source: "/(.*)",
               headers: [{
                 key: "Content-Security-Policy",
-                value: "\n              default-src 'self';\n              script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' 'inline-speculation-rules';\n              style-src 'self' 'unsafe-inline';\n              img-src 'self' data: https://image.tmdb.org https://d3rotgd7sghdsb.cloudfront.net https://bridgefixdb.s3.us-east-1.amazonaws.com;\n              font-src 'self' https://fonts.gstatic.com;\n              connect-src *;\n            ".replace(/\n/g, "").trim()
+                value: "\n              default-src 'self';\n              script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' 'inline-speculation-rules';\n              style-src 'self' 'unsafe-inline';\n              img-src 'self' data: https://image.tmdb.org https://d3rotgd7sghdsb.cloudfront.net https://bridgefixdb.s3.us-east-1.amazonaws.com;\n              font-src 'self' https://fonts.gstatic.com;\n              connect-src 'self' https://breachfixdb.onrender.com https://adventhub.onrender.com https://breachfix.com https://www.breachfix.com https://breachfix.ca https://www.breachfix.ca;\n              frame-src 'self';\n            ".replace(/\n/g, "").trim()
               }]
             }]);
 

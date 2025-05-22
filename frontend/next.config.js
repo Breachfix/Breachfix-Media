@@ -25,7 +25,8 @@ const nextConfig = {
               style-src 'self' 'unsafe-inline';
               img-src 'self' data: https://image.tmdb.org https://d3rotgd7sghdsb.cloudfront.net https://bridgefixdb.s3.us-east-1.amazonaws.com;
               font-src 'self' https://fonts.gstatic.com;
-              connect-src *;
+              connect-src 'self' https://breachfixdb.onrender.com https://adventhub.onrender.com https://breachfix.com https://www.breachfix.com https://breachfix.ca https://www.breachfix.ca;
+              frame-src 'self';
             `.replace(/\n/g, "").trim(),
           },
         ],
