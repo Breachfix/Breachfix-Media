@@ -16,8 +16,8 @@ const nextProdConfig = {
           {
             key: "Content-Security-Policy",
             value: `
-  default-src * data: blob:;
-  script-src * 'unsafe-inline' 'unsafe-eval' data: blob:;
+            default-src * data: blob: chrome-extension:;
+  script-src * 'unsafe-inline' 'unsafe-eval' data: blob: chrome-extension:;
   style-src * 'unsafe-inline' data: blob:;
   img-src * data: blob:;
   font-src * data: blob:;

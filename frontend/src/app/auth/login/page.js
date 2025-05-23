@@ -36,12 +36,12 @@ export default function LoginPage() {
           return;
         }
 
-        if (!user.subscription || user.subscription.status !== "active") {
-          await router.replace("/browse");
-          return;
-        }
+        // if (!user.subscription || user.subscription.status !== "active") {
+        //   await router.replace("/subscribe");
+        //   return;
+        // }
 
-        await router.replace("/subscribe");
+        await router.replace("/browse");
       } else {
         setLoginError(true);
       }
