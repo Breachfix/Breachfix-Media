@@ -10,13 +10,18 @@ const api = axios.create({
 });
 
 // Add Authorization header if token exists
-api.interceptors.request.use((config) => {
-  const token = typeof window !== 'undefined' && localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+api.interceptors.request.use(
+  (config) => {
+    const token = typeof window !== 'undefined' && localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn("⚠️ No token found in localStorage at time of API call.");
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // -----------------
 // Authentication
@@ -56,6 +61,8 @@ export const signup = async (data) => {
 export const fetchUserProfile = async () => {
   try {
     const response = await api.get('/auth/profile');
+    const token = localStorage.getItem('authToken');
+    console.log("🔑 Token being sent:", token);
     return response.data;
   } catch (error) {
     console.error('Error fetching user profile:', error.response?.data || error.message || err);

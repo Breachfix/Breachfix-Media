@@ -77,9 +77,14 @@ const loadUserFromStorage = () => {
     window.location.href = "/auth/login";
   };
 
-  useEffect(() => {
+useEffect(() => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
     loadUser();
-  }, []);
+  } else {
+    setAuthLoading(false); // No token, don’t call profile
+  }
+}, []);
 
   return (
     <AuthContext.Provider
