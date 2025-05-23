@@ -14,6 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useContext, useEffect } from "react";
 import RequireAuth from "@/components/RequireAuth";
 
+
 export default function Browse() {
   const {
     loggedInAccount,

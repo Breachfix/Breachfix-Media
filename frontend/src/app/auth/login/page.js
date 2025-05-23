@@ -37,11 +37,11 @@ export default function LoginPage() {
         }
 
         if (!user.subscription || user.subscription.status !== "active") {
-          await router.replace("/subscribe");
+          await router.replace("/browse");
           return;
         }
 
-        await router.replace("/browse");
+        await router.replace("/subscribe");
       } else {
         setLoginError(true);
       }

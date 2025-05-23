@@ -11,6 +11,7 @@ import PinContainer from "@/components/pin-container";
 import AuthBackground from "@/components/AuthBackground";
 import RequireAuth from "@/components/RequireAuth";
 
+
 const initialFormData = {
   name: "",
   pin: "",
