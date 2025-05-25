@@ -118,11 +118,14 @@ import { buffer } from "micro";
 import Stripe from "stripe";
 import connectToDB from "@/database";
 import MediaSubscription from "@/models/MediaSubscription";
-import { fetchUserByStripeCustomerId } from "@/utils/subscription";
+import {
+  fetchUserByStripeCustomerId,
+  linkCustomerIdToUser
+} from "@/utils/subscription";
 
 export const config = {
   api: {
-    bodyParser: false, // Required for raw body
+    bodyParser: false, // Required to get raw body
   },
 };
 
@@ -148,79 +151,49 @@ export async function POST(req) {
 
   await connectToDB();
 
-  const subscriptionEvents = [
-    "customer.subscription.created",
-    "customer.subscription.updated",
-    "customer.subscription.deleted",
-    "customer.subscription.paused",
-    "customer.subscription.resumed",
-    "customer.subscription.pending_update_applied",
-    "customer.subscription.pending_update_expired",
-    "customer.subscription.trial_will_end"
-  ];
-
-  const invoiceEvents = [
-    "invoice.payment_succeeded",
-    "invoice.payment_failed"
-  ];
-
-  const checkoutEvents = [
-    "checkout.session.completed"
-  ];
-
-  const customerEvents = [
-    "customer.created",
-    "customer.updated",
-    "customer.deleted"
-  ];
-
-  // Handle events
   switch (event.type) {
-case "customer.subscription.created":
-case "customer.subscription.updated":
-case "customer.subscription.resumed":
-case "customer.subscription.pending_update_applied": {
-  const subscription = event.data.object;
+    case "customer.subscription.created":
+    case "customer.subscription.updated":
+    case "customer.subscription.resumed":
+    case "customer.subscription.pending_update_applied": {
+      const subscription = event.data.object;
 
-  try {
-    const user = await fetchUserByStripeCustomerId(subscription.customer);
+      try {
+        const user = await fetchUserByStripeCustomerId(subscription.customer);
 
-    // Fetch the latest invoice if available
-    let invoice = null;
-    if (subscription.latest_invoice) {
-      invoice = await stripe.invoices.retrieve(subscription.latest_invoice);
+        let invoice = null;
+        if (subscription.latest_invoice) {
+          invoice = await stripe.invoices.retrieve(subscription.latest_invoice);
+        }
+
+        const saved = await MediaSubscription.findOneAndUpdate(
+          { userId: user._id },
+          {
+            userId: user._id,
+            stripeCustomerId: subscription.customer,
+            stripeSubscriptionId: subscription.id,
+            status: subscription.status,
+            startDate: new Date(subscription.start_date * 1000),
+            endDate: new Date(subscription.current_period_end * 1000),
+            planName: mapPriceIdToPlan(subscription.items.data[0].price.id),
+            billingCycle: mapPriceIdToCycle(subscription.items.data[0].price.id),
+            amountTotal: invoice?.amount_paid || null,
+            currency: invoice?.currency || null,
+            latestInvoice: invoice?.id || null,
+            paymentStatus: invoice?.status || null,
+            hostedInvoiceUrl: invoice?.hosted_invoice_url || null,
+            metadata: subscription.metadata || {},
+          },
+          { upsert: true, new: true }
+        );
+
+        console.log(`✅ Subscription saved for user ${user.email}`);
+      } catch (err) {
+        console.error("❌ Error updating subscription:", err.message);
+      }
+
+      break;
     }
-
-    const saved = await MediaSubscription.findOneAndUpdate(
-      { userId: user._id },
-      {
-        userId: user._id,
-        stripeCustomerId: subscription.customer,
-        stripeSubscriptionId: subscription.id,
-        status: subscription.status,
-        startDate: new Date(subscription.start_date * 1000),
-        endDate: new Date(subscription.current_period_end * 1000),
-        planName: mapPriceIdToPlan(subscription.items.data[0].price.id),
-        billingCycle: mapPriceIdToCycle(subscription.items.data[0].price.id),
-
-        // ✅ new fields below
-        amountTotal: invoice?.amount_paid || null,
-        currency: invoice?.currency || null,
-        latestInvoice: invoice?.id || null,
-        paymentStatus: invoice?.status || null,
-        hostedInvoiceUrl: invoice?.hosted_invoice_url || null,
-        metadata: subscription.metadata || {},
-      },
-      { upsert: true, new: true }
-    );
-
-    console.log(`✅ Subscription updated for ${user.email}`);
-  } catch (err) {
-    console.error("❌ Error updating subscription:", err.message);
-  }
-
-  break;
-}
 
     case "customer.subscription.deleted":
     case "customer.subscription.paused":
@@ -244,6 +217,27 @@ case "customer.subscription.pending_update_applied": {
       break;
     }
 
+    case "checkout.session.completed": {
+      const session = event.data.object;
+
+      const userId = session.metadata?.userId;
+      const stripeCustomerId = session.customer;
+
+      if (!userId || !stripeCustomerId) {
+        console.error("❌ Missing userId or customer in session metadata");
+        break;
+      }
+
+      try {
+        await linkCustomerIdToUser(userId, stripeCustomerId);
+        console.log(`✅ Linked user ${userId} with Stripe customer ${stripeCustomerId}`);
+      } catch (err) {
+        console.error("❌ Error linking Stripe customer ID:", err.message);
+      }
+
+      break;
+    }
+
     case "invoice.payment_succeeded":
       console.log("✅ Invoice payment succeeded");
       break;
@@ -251,31 +245,6 @@ case "customer.subscription.pending_update_applied": {
     case "invoice.payment_failed":
       console.warn("❌ Invoice payment failed");
       break;
-
-    case "checkout.session.completed": {
-  const session = event.data.object;
-
-  const userId = session.metadata?.userId;
-  const stripeCustomerId = session.customer;
-
-  if (!userId || !stripeCustomerId) {
-    console.error("Missing userId or customer in session metadata");
-    break;
-  }
-
-  try {
-    // 🔄 Update user with Stripe customer ID
-    await User.findByIdAndUpdate(userId, {
-      stripeCustomerId: stripeCustomerId,
-    });
-
-    console.log(`✅ Linked user ${userId} with Stripe customer ${stripeCustomerId}`);
-  } catch (err) {
-    console.error("❌ Error linking Stripe customer ID to user:", err.message);
-  }
-
-  break;
-}
 
     case "customer.created":
       console.log("👤 New customer created");
@@ -331,5 +300,5 @@ function mapPriceIdToCycle(priceId) {
   ];
   if (monthly.includes(priceId)) return "monthly";
   if (yearly.includes(priceId)) return "yearly";
-  return "monthly"; // fallback
+  return "monthly";
 }
