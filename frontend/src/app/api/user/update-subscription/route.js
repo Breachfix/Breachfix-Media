@@ -10,14 +10,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { uid, newPriceId } = body;
+    const { userId, newPriceId } = body;
 
-    if (!uid || !newPriceId) {
+    if (!userId || !newPriceId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    await connectToDB();
-    const existing = await MediaSubscription.findOne({ uid });
+    await dbConnect();
+    const existing = await MediaSubscription.findOne({ userId });
 
     if (!existing || !existing.stripeSubscriptionId) {
       return NextResponse.json({ error: "Active subscription not found" }, { status: 404 });

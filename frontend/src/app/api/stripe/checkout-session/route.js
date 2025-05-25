@@ -6,9 +6,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { planName, priceId, uid, billingCycle } = body;
+    const { planName, priceId, userId, billingCycle } = body;
 
-    if (!planName || !priceId || !uid) {
+    if (!planName || !priceId || !userId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -21,9 +21,9 @@ export async function POST(req) {
           quantity: 1,
         },
       ],
-      customer_creation: "always", // ✅ Ensure customer is created if not exists
+      
       metadata: {
-        uid,            // 👈 use uid instead of userId
+        userId,
         planName,
         billingCycle,
       },

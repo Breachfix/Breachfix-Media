@@ -1,3 +1,4 @@
+
 import Stripe from "stripe";
 import connectToDB from "@/database";
 import MediaSubscription from "@/models/MediaSubscription";
@@ -50,9 +51,9 @@ export async function POST(req) {
         }
 
         const saved = await MediaSubscription.findOneAndUpdate(
-          { uid: user.id },
+          { userId: user._id },
           {
-            uid: user.id,
+            userId: user._id,
             stripeCustomerId: subscription.customer,
             stripeSubscriptionId: subscription.id,
             status: subscription.status,
@@ -88,7 +89,7 @@ export async function POST(req) {
         const user = await fetchUserByStripeCustomerId(subscription.customer);
 
         const updated = await MediaSubscription.findOneAndUpdate(
-          { uid: user.id },
+          { userId: user._id },
           { status: subscription.status },
           { new: true }
         );

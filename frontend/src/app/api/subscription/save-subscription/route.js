@@ -10,7 +10,7 @@ export async function POST(req) {
 
     const body = await req.json();
     const {
-      uid, // ✅ Modernized to use UID
+      userId, // ✅ Changed from uid to userId
       planName,
       billingCycle = "monthly",
       stripeCustomerId,
@@ -26,7 +26,7 @@ export async function POST(req) {
       metadata = {},
     } = body;
 
-    if (!uid || !planName || !stripeCustomerId || !stripeSubscriptionId) {
+    if (!userId || !planName || !stripeCustomerId || !stripeSubscriptionId) {
       return NextResponse.json(
         { success: false, message: "Missing required fields" },
         { status: 400 }
@@ -34,9 +34,9 @@ export async function POST(req) {
     }
 
     const updated = await MediaSubscription.findOneAndUpdate(
-      { uid },
+      { userId },
       {
-        uid,
+        userId,
         planName,
         billingCycle,
         stripeCustomerId,

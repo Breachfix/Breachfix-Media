@@ -9,7 +9,13 @@ import PlanToggle from "@/components/subscription/PlanToggle";
 import PlanComparisonTable from "@/components/subscription/PlanComparisonTable";
 import PlanDetailsMobile from "@/components/subscription/PlanDetailsMobile";
 import PlanDetailsDesktop from "@/components/subscription/PlanDetailsDesktop";
-import HandleCanceledParam from "@/components/subscription/HandleCanceledParam"; // ✅ NEW
+import HandleCanceledParam from "@/components/subscription/HandleCanceledParam";
+import {
+  getUserSubscription,
+  saveUserSubscription,
+  createStripeCheckoutSession,
+  updateStripeSubscription,
+} from "@/lib/subscriptionManager";
 
 export default function SubscribePage() {
   const [selectedPlan, setSelectedPlan] = useState("Basic");
@@ -33,13 +39,13 @@ export default function SubscribePage() {
         "Watch on 1 device",
         "Access to sermons, kids content, devotionals",
         "Safe environment, no ads or profanity",
-        "Christ-centered storytelling to uplift your spirit"
+        "Christ-centered storytelling to uplift your spirit",
       ],
       images: [
         "/images/basic-1.png",
         "/images/basic-2.png",
-        "/images/basic-3.png"
-      ]
+        "/images/basic-3.png",
+      ],
     },
     {
       name: "Standard",
@@ -54,13 +60,13 @@ export default function SubscribePage() {
         "Watch on 2 devices",
         "Download to watch offline",
         "Early access to upcoming series",
-        "Interactive content to grow spiritually together"
+        "Interactive content to grow spiritually together",
       ],
       images: [
         "/images/standard-1.png",
         "/images/standard-2.png",
-        "/images/standard-3.png"
-      ]
+        "/images/standard-3.png",
+      ],
     },
     {
       name: "Premium",
@@ -76,13 +82,13 @@ export default function SubscribePage() {
         "Full offline library access",
         "Exclusive Christian series and documentaries",
         "Family devotions, study series, gospel-based recovery resources",
-        "Community prayer and faith tools"
+        "Community prayer and faith tools",
       ],
       images: [
         "/images/premium-1.png",
         "/images/premium-2.png",
-        "/images/premium-3.png"
-      ]
+        "/images/premium-3.png",
+      ],
     },
   ];
 
@@ -90,16 +96,13 @@ export default function SubscribePage() {
 
   useEffect(() => {
     const fetchCurrentSubscription = async () => {
-      const uid = user?.id || localStorage.getItem("userId");
-      if (!uid) return;
+      const userId = user?.id || localStorage.getItem("userId");
+      if (!userId) return;
 
       try {
-        const res = await fetch("/api/subscription/get-user-subscription", {
-          headers: { "x-uid": uid }
-        });
-        const data = await res.json();
-        if (data.success && data.planName) {
-          setUserSubscription(data.planName);
+        const subscription = await getUserSubscription(userId);
+        if (subscription.planName) {
+          setUserSubscription(subscription.planName);
         }
       } catch (err) {
         console.error("❌ Error fetching subscription:", err);
@@ -138,26 +141,31 @@ export default function SubscribePage() {
 
   const handleSubscribe = async (plan) => {
     const priceId = stripePriceIds[plan.name][billingCycle];
-    const uid = user?.id;
-    if (!uid || !priceId) return;
+    const userId = user?.id;
+    if (!userId || !priceId) return;
 
     try {
-      const res = await fetch("/api/stripe/checkout-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planName: plan.name, priceId, uid, billingCycle })
-      });
-      console.log("Subscribing:", {
-        plan: plan.name,
-        uid,
+      const url = await createStripeCheckoutSession({
+        planName: plan.name,
         priceId,
-        billingCycle
+        userId,
+        billingCycle,
       });
 
-      const data = await res.json();
-      if (data?.url) window.location.href = data.url;
+      if (url) {
+        await saveUserSubscription({
+          userId,
+          planName: plan.name,
+          billingCycle,
+          stripeCustomerId: "pending",
+          stripeSubscriptionId: "pending",
+          status: "pending",
+        });
+
+        window.location.href = url;
+      }
     } catch (error) {
-      console.error("❌ Subscription error:", error);
+      console.error("❌ Failed to create Stripe session:", error.message);
     }
   };
 
