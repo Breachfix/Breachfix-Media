@@ -8,16 +8,13 @@ const API_URL = `${API}/api/v1`;
 const api = axios.create({ baseURL: API_URL });
 
 // ✅ Add Authorization header on each request
-api.interceptors.request.use(
-  (config) => {
-    const token = typeof window !== "undefined" && localStorage.getItem("authToken");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken'); // Adjust to your token storage logic
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 export default api;
 // -----------------
@@ -26,21 +23,25 @@ export default api;
 export const login = async (data) => {
   try {
     const response = await api.post('/auth/login', data);
-    const { success, accessToken, refreshToken, user, twoFactorRequired, message } = response.data;
+    const { success, accessToken, refreshToken, user, message, twoFactorRequired } = response.data;
 
     if (success) {
       if (twoFactorRequired) {
-        return { success, twoFactorRequired, user, message };
+        console.log('2FA required, redirecting to OTP verification...');
+        return { success, twoFactorRequired, message, user }; // 2FA flow
       }
+
+      // Save tokens and userId to localStorage
       localStorage.setItem('authToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('userId', user.id);
-      return { success: true, user };
+
+      return { success, accessToken, refreshToken, user, message }; // ✅ include tokens here
     } else {
-      throw new Error(message || "Login failed");
+      throw new Error(message || 'Login failed');
     }
   } catch (error) {
-    console.error("Error during login:", error.response?.data || error.message);
+    console.error('Error during login:', error.response?.data || error.message);
     throw error;
   }
 };
@@ -75,10 +76,10 @@ export const apiWithAuth = () => {
 // Then use:
 export const fetchUserProfile = async () => {
   try {
-    const res = await apiWithAuth().get("/auth/profile");
-    return res.data;
+    const response = await api.get('/auth/profile');
+    return response.data;
   } catch (error) {
-    console.error("❌ Error fetching user profile:", error.response?.data || error.message);
+    console.error('Error fetching user profile:', error.response?.data || error.message);
     throw error;
   }
 };
