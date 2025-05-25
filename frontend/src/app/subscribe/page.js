@@ -148,6 +148,12 @@ export default function SubscribePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planName: plan.name, priceId, userId, billingCycle })
       });
+      console.log("Subscribing:", {
+  plan: plan.name,
+  userId,
+  priceId,
+  billingCycle
+});
 
       const data = await res.json();
       if (data?.url) window.location.href = data.url;

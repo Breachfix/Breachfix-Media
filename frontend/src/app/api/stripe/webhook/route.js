@@ -252,9 +252,30 @@ case "customer.subscription.pending_update_applied": {
       console.warn("❌ Invoice payment failed");
       break;
 
-    case "checkout.session.completed":
-      console.log("✅ Checkout completed");
-      break;
+    case "checkout.session.completed": {
+  const session = event.data.object;
+
+  const userId = session.metadata?.userId;
+  const stripeCustomerId = session.customer;
+
+  if (!userId || !stripeCustomerId) {
+    console.error("Missing userId or customer in session metadata");
+    break;
+  }
+
+  try {
+    // 🔄 Update user with Stripe customer ID
+    await User.findByIdAndUpdate(userId, {
+      stripeCustomerId: stripeCustomerId,
+    });
+
+    console.log(`✅ Linked user ${userId} with Stripe customer ${stripeCustomerId}`);
+  } catch (err) {
+    console.error("❌ Error linking Stripe customer ID to user:", err.message);
+  }
+
+  break;
+}
 
     case "customer.created":
       console.log("👤 New customer created");
