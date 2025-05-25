@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -18,18 +17,10 @@ import {
   updateStripeSubscription,
 } from "@/lib/subscriptionManager";
 
-export default function SubscribePage() {
-  const [selectedPlan, setSelectedPlan] = useState("Basic");
-  const [billingCycle, setBillingCycle] = useState("monthly");
-  const [userSubscription, setUserSubscription] = useState(null);
-  const [canceled, setCanceled] = useState(false);
-  const { user } = useAuth();
-  const router = useRouter();
-
-const plans = [
+const localPlans = [
   {
-    name: "Basic", // Matches FREE plan in Stripe, labeled as "Basic" in your plan map
-    prices: { monthly: "$0", yearly: "$0" },
+    name: "Basic",
+    prices: {},
     quality: "Good",
     resolution: "480p",
     devices: "1",
@@ -42,15 +33,11 @@ const plans = [
       "Safe environment, no ads or profanity",
       "Christ-centered storytelling to uplift your spirit",
     ],
-    images: [
-      "/images/basic-1.png",
-      "/images/basic-2.png",
-      "/images/basic-3.png",
-    ],
+    images: ["/images/basic-1.png", "/images/basic-2.png", "/images/basic-3.png"],
   },
   {
-    name: "Standard", // Matches BASIC price IDs in Stripe
-    prices: { monthly: "$5", yearly: "$50" },
+    name: "Standard",
+    prices: {},
     quality: "Better",
     resolution: "720p",
     devices: "2",
@@ -63,15 +50,11 @@ const plans = [
       "Early access to upcoming series",
       "Interactive content to grow spiritually together",
     ],
-    images: [
-      "/images/standard-1.png",
-      "/images/standard-2.png",
-      "/images/standard-3.png",
-    ],
+    images: ["/images/standard-1.png", "/images/standard-2.png", "/images/standard-3.png"],
   },
   {
     name: "Premium",
-    prices: { monthly: "$15", yearly: "$150" },
+    prices: {},
     quality: "Best",
     resolution: "1080p + 4K",
     devices: "4",
@@ -85,15 +68,41 @@ const plans = [
       "Family devotions, study series, gospel-based recovery resources",
       "Community prayer and faith tools",
     ],
-    images: [
-      "/images/premium-1.png",
-      "/images/premium-2.png",
-      "/images/premium-3.png",
-    ],
+    images: ["/images/premium-1.png", "/images/premium-2.png", "/images/premium-3.png"],
   },
 ];
 
-  const currentPlan = plans.find((p) => p.name === selectedPlan);
+export default function SubscribePage() {
+  const [selectedPlan, setSelectedPlan] = useState("Basic");
+  const [billingCycle, setBillingCycle] = useState("monthly");
+  const [userSubscription, setUserSubscription] = useState(null);
+  const [canceled, setCanceled] = useState(false);
+  const [plans, setPlans] = useState(localPlans);
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const res = await fetch("/api/stripe/billing/load-plans");
+        const data = await res.json();
+        if (data.success) {
+          const merged = localPlans.map((local) => {
+            const match = data.plans.find((p) => p.name === local.name);
+            return {
+              ...local,
+              name: match?.name || local.name,
+              prices: match?.prices || {},
+            };
+          });
+          setPlans(merged);
+        }
+      } catch (err) {
+        console.error("❌ Error loading plans:", err);
+      }
+    };
+    fetchPlans();
+  }, []);
 
   useEffect(() => {
     const fetchCurrentSubscription = async () => {
@@ -125,27 +134,18 @@ const plans = [
     return "Downgrade to this plan";
   };
 
-const stripePriceIds = {
-  Basic: {
-    monthly: process.env.NEXT_PUBLIC_PRICE_FREE_MONTHLY, // Matches "Basic" in `mapPriceIdToPlan`
-    yearly: process.env.NEXT_PUBLIC_PRICE_FREE_YEARLY,
-  },
-  Standard: {
-    monthly: process.env.NEXT_PUBLIC_PRICE_BASIC_MONTHLY, // Matches "Standard" in `mapPriceIdToPlan`
-    yearly: process.env.NEXT_PUBLIC_PRICE_BASIC_YEARLY,
-  },
-  Premium: {
-    monthly: process.env.NEXT_PUBLIC_PRICE_PREMIUM_MONTHLY,
-    yearly: process.env.NEXT_PUBLIC_PRICE_PREMIUM_YEARLY,
-  },
-};
-
   const handleSubscribe = async (plan) => {
-    const priceId = stripePriceIds[plan.name][billingCycle];
-    const userId = user?.id;
-    if (!userId || !priceId) return;
+  const userId = user?.id || localStorage.getItem("userId");
+  const priceId = plan.prices?.[billingCycle]?.id;
 
-    try {
+  if (!userId || !priceId) {
+    console.warn("❌ Missing userId or priceId");
+    return;
+  }
+
+  try {
+    if (!userSubscription) {
+      // 🆕 New subscription flow
       const url = await createStripeCheckoutSession({
         planName: plan.name,
         priceId,
@@ -153,22 +153,37 @@ const stripePriceIds = {
         billingCycle,
       });
 
-      if (url) {
-        await saveUserSubscription({
-          userId,
-          planName: plan.name,
-          billingCycle,
-          stripeCustomerId: "pending",
-          stripeSubscriptionId: "pending",
-          status: "pending",
-        });
+      await saveUserSubscription({
+        userId,
+        planName: plan.name,
+        billingCycle,
+        stripeCustomerId: "pending",
+        stripeSubscriptionId: "pending",
+        status: "pending",
+      });
 
-        window.location.href = url;
+      window.location.href = url;
+    } else if (userSubscription !== plan.name) {
+      // 🔁 Upgrade/Downgrade flow
+      const result = await updateStripeSubscription(userId, priceId);
+      if (result.success) {
+        console.log("✅ Subscription updated, redirecting...");
+        router.replace("/subscribe/success");
+      } else {
+        console.error("❌ Stripe subscription update failed:", result.message);
+        alert("Failed to update your subscription. Please try again.");
       }
-    } catch (error) {
-      console.error("❌ Failed to create Stripe session:", error.message);
+    } else {
+      // ⚠️ Already on this plan
+      console.log("ℹ️ You are already on this plan.");
     }
-  };
+  } catch (error) {
+    console.error("❌ Error during subscription flow:", error);
+    alert("Something went wrong during your subscription. Please try again.");
+  }
+};
+
+  const currentPlan = plans.find((p) => p.name === selectedPlan);
 
   return (
     <RequireAuth>
