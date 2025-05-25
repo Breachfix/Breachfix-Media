@@ -72,6 +72,21 @@ const localPlans = [
   },
 ];
 
+const stripePriceIds = {
+  Basic: {
+    monthly: process.env.NEXT_PUBLIC_PRICE_FREE_MONTHLY,
+    yearly: process.env.NEXT_PUBLIC_PRICE_FREE_YEARLY,
+  },
+  Standard: {
+    monthly: process.env.NEXT_PUBLIC_PRICE_BASIC_MONTHLY,
+    yearly: process.env.NEXT_PUBLIC_PRICE_BASIC_YEARLY,
+  },
+  Premium: {
+    monthly: process.env.NEXT_PUBLIC_PRICE_PREMIUM_MONTHLY,
+    yearly: process.env.NEXT_PUBLIC_PRICE_PREMIUM_YEARLY,
+  },
+};
+
 export default function SubscribePage() {
   const [selectedPlan, setSelectedPlan] = useState("Basic");
   const [billingCycle, setBillingCycle] = useState("monthly");
@@ -135,53 +150,48 @@ export default function SubscribePage() {
   };
 
   const handleSubscribe = async (plan) => {
-  const userId = user?.id || localStorage.getItem("userId");
-  const priceId = plan.prices?.[billingCycle]?.id;
+    const userId = user?.id || localStorage.getItem("userId");
+    const priceId = stripePriceIds[plan.name]?.[billingCycle];
 
-  if (!userId || !priceId) {
-    console.warn("❌ Missing userId or priceId");
-    return;
-  }
-
-  try {
-    if (!userSubscription) {
-      // 🆕 New subscription flow
-      const url = await createStripeCheckoutSession({
-        planName: plan.name,
-        priceId,
-        userId,
-        billingCycle,
-      });
-
-      await saveUserSubscription({
-        userId,
-        planName: plan.name,
-        billingCycle,
-        stripeCustomerId: "pending",
-        stripeSubscriptionId: "pending",
-        status: "pending",
-      });
-
-      window.location.href = url;
-    } else if (userSubscription !== plan.name) {
-      // 🔁 Upgrade/Downgrade flow
-      const result = await updateStripeSubscription(userId, priceId);
-      if (result.success) {
-        console.log("✅ Subscription updated, redirecting...");
-        router.replace("/subscribe/success");
-      } else {
-        console.error("❌ Stripe subscription update failed:", result.message);
-        alert("Failed to update your subscription. Please try again.");
-      }
-    } else {
-      // ⚠️ Already on this plan
-      console.log("ℹ️ You are already on this plan.");
+    if (!userId || !priceId) {
+      console.warn("❌ Missing userId or priceId", { userId, priceId });
+      return;
     }
-  } catch (error) {
-    console.error("❌ Error during subscription flow:", error);
-    alert("Something went wrong during your subscription. Please try again.");
-  }
-};
+
+    try {
+      if (!userSubscription) {
+        const url = await createStripeCheckoutSession({
+          planName: plan.name,
+          priceId,
+          userId,
+          billingCycle,
+        });
+
+        await saveUserSubscription({
+          userId,
+          planName: plan.name,
+          billingCycle,
+          stripeCustomerId: "pending",
+          stripeSubscriptionId: "pending",
+          status: "pending",
+        });
+
+        window.location.href = url;
+      } else if (userSubscription !== plan.name) {
+        const result = await updateStripeSubscription(userId, priceId);
+        if (result.success) {
+          router.replace("/subscribe/success");
+        } else {
+          alert("Failed to update your subscription. Please try again.");
+        }
+      } else {
+        console.log("ℹ️ Already on this plan");
+      }
+    } catch (error) {
+      console.error("❌ Error during subscription flow:", error);
+      alert("Something went wrong. Please try again later.");
+    }
+  };
 
   const currentPlan = plans.find((p) => p.name === selectedPlan);
 
