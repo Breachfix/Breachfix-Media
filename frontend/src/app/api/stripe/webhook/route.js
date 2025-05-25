@@ -34,6 +34,56 @@ export async function POST(req) {
   await connectToDB();
 
   switch (event.type) {
+     case "checkout.session.completed": {
+      const session = event.data.object;
+      const userId = session.metadata?.userId;
+      const stripeCustomerId = session.customer;
+      const subscriptionId = session.subscription;
+
+      if (!userId || !stripeCustomerId || !subscriptionId) {
+        console.error("❌ Missing userId or subscription ID");
+        break;
+      }
+
+      try {
+        // Link customer ID to user
+        await linkCustomerIdToUser(userId, stripeCustomerId);
+        console.log(`✅ Linked user ${userId} with Stripe customer ${stripeCustomerId}`);
+
+        // Retrieve full subscription
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const invoice = subscription.latest_invoice
+          ? await stripe.invoices.retrieve(subscription.latest_invoice)
+          : null;
+
+        const saved = await MediaSubscription.findOneAndUpdate(
+          { userId },
+          {
+            userId,
+            stripeCustomerId,
+            stripeSubscriptionId: subscription.id,
+            status: subscription.status,
+            startDate: new Date(subscription.start_date * 1000),
+            endDate: new Date(subscription.current_period_end * 1000),
+            planName: mapPriceIdToPlan(subscription.items.data[0].price.id),
+            billingCycle: mapPriceIdToCycle(subscription.items.data[0].price.id),
+            amountTotal: invoice?.amount_paid || null,
+            currency: invoice?.currency || null,
+            latestInvoice: invoice?.id || null,
+            paymentStatus: invoice?.status || null,
+            hostedInvoiceUrl: invoice?.hosted_invoice_url || null,
+            metadata: subscription.metadata || {},
+          },
+          { upsert: true, new: true }
+        );
+
+        console.log("📦 Subscription updated:", saved);
+      } catch (err) {
+        console.error("❌ Error during checkout.session.completed:", err);
+      }
+
+      break;
+    }
     case "customer.subscription.created":
     case "customer.subscription.updated":
     case "customer.subscription.resumed":
@@ -95,56 +145,6 @@ export async function POST(req) {
         console.log("📦 Updated subscription document:", updated);
       } catch (err) {
         console.error("❌ Error handling subscription deletion/pausing:", err.message);
-      }
-      break;
-    }
-
-    case "checkout.session.completed": {
-      const session = event.data.object;
-      const userId = session.metadata?.userId;
-      const stripeCustomerId = session.customer;
-      const subscriptionId = session.subscription;
-
-      if (!userId || !stripeCustomerId || !subscriptionId) {
-        console.error("❌ Missing required fields in session");
-        break;
-      }
-
-      try {
-        await linkCustomerIdToUser(userId, stripeCustomerId);
-        console.log(`✅ Linked user ${userId} with Stripe customer ${stripeCustomerId}`);
-
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-
-        let invoice = null;
-        if (subscription.latest_invoice) {
-          invoice = await stripe.invoices.retrieve(subscription.latest_invoice);
-        }
-
-        const saved = await MediaSubscription.findOneAndUpdate(
-          { userId },
-          {
-            userId,
-            stripeCustomerId,
-            stripeSubscriptionId: subscription.id,
-            status: subscription.status,
-            startDate: new Date(subscription.start_date * 1000),
-            endDate: new Date(subscription.current_period_end * 1000),
-            planName: mapPriceIdToPlan(subscription.items.data[0].price.id),
-            billingCycle: mapPriceIdToCycle(subscription.items.data[0].price.id),
-            amountTotal: invoice?.amount_paid || null,
-            currency: invoice?.currency || null,
-            latestInvoice: invoice?.id || null,
-            paymentStatus: invoice?.status || null,
-            hostedInvoiceUrl: invoice?.hosted_invoice_url || null,
-            metadata: subscription.metadata || {},
-          },
-          { upsert: true, new: true }
-        );
-
-        console.log("📦 Subscription updated:", saved);
-      } catch (err) {
-        console.error("❌ Error handling checkout.session.completed:", err.message);
       }
       break;
     }
