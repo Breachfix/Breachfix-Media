@@ -11,29 +11,32 @@ export default function RequireAuth({ children }) {
 
   useEffect(() => {
     if (!authLoading) {
+      const path = window.location.pathname;
+
       // Not logged in
       if (!user?.id) {
-        const currentPath = window.location.pathname + window.location.search;
+        const currentPath = path + window.location.search;
         sessionStorage.setItem("redirectAfterLogin", currentPath);
         router.replace("/auth/login");
         return;
       }
 
-      // Logged in but not subscribed
-      const allowedWithoutActiveSubscription = [
-            "/subscribe/success",
-             "/debug/finalize-subscription",
+      const allowedWithoutSubscription = [
+        "/subscribe/success",
+        "/debug/finalize-subscription",
+        "/subscribe", // allow subscription page itself
       ];
 
-      if (
-           !allowedWithoutActiveSubscription.includes(window.location.pathname) &&
-           (!user.subscription || user.subscription.status !== "active")
-         ) {
-            router.replace("/subscribe");
-             return;
-           }
-      
+      const isAllowed = allowedWithoutSubscription.includes(path);
+      const hasActiveSub = user?.subscription?.status === "active";
 
+      // If user is not subscribed and page isn't whitelisted, redirect
+      if (!hasActiveSub && !isAllowed) {
+        router.replace("/subscribe");
+        return;
+      }
+
+      // ✅ All checks passed, mark auth as checked
       setHasCheckedAuth(true);
     }
   }, [authLoading, user]);
@@ -41,14 +44,10 @@ export default function RequireAuth({ children }) {
   if (!hasCheckedAuth || authLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-black text-white">
-        {/* Netflix-style shimmer logo or animated ring */}
         <div className="animate-pulse mb-6 text-3xl font-bold text-red-600 tracking-widest">
           BREACHFIX
         </div>
-
-        {/* Loading spinner */}
         <div className="border-4 border-red-600 border-t-transparent rounded-full w-12 h-12 animate-spin mb-4" />
-
         <p className="text-lg text-gray-300 font-medium tracking-wide">
           Checking your access...
         </p>
