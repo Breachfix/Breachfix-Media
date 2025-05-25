@@ -1,9 +1,9 @@
-// src/app/layout.js
 import "./globals.css";
 import { Work_Sans, Outfit } from "next/font/google";
 import GlobalState from "@/context";
 import { AuthProvider } from "@/context/AuthContext";
 import SuppressHydrationWarning from "@/components/SuppressHydrationWarning";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const workSans = Work_Sans({
   subsets: ["latin"],
@@ -26,12 +26,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${workSans.variable} ${outfit.variable}`}>
       <body className="font-sans text-white bg-black">
-        {/* Client-only hydration warning suppressor */}
-        <div suppressHydrationWarning={true}>
-          <AuthProvider>
-            <GlobalState>{children}</GlobalState>
-          </AuthProvider>
-        </div>
+        <SuppressHydrationWarning /> {/* ✅ correct usage */}
+        <AuthProvider>
+          <GlobalState>
+            {children}
+            <SpeedInsights />
+          </GlobalState>
+        </AuthProvider>
       </body>
     </html>
   );
