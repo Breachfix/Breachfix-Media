@@ -9,38 +9,51 @@ export default function SubscribeSuccessClient() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const [loading, setLoading] = useState(true);
+  const [success, setSuccess] = useState(null); // ✅ track success/failure
 
-useEffect(() => {
-  const finalizeSubscription = async () => {
+  useEffect(() => {
     if (!sessionId) return;
 
-    try {
-      console.log("✅ Session ID:", sessionId);
+    const finalizeSubscription = async () => {
+      try {
+        console.log("✅ Session ID:", sessionId);
 
-      // Call your backend endpoint to verify and finalize the subscription
-      const res = await fetch(`/api/stripe/finalize-subscription?session_id=${sessionId}`);
-      const data = await res.json();
+        const res = await fetch(`/api/stripe/finalize-subscription?session_id=${sessionId}`);
+        const data = await res.json();
 
-      if (data.success) {
-        console.log("🎉 Subscription finalized:", data.subscription);
-      } else {
-        console.warn("⚠️ Subscription not confirmed:", data.message);
+        if (data.success) {
+          console.log("🎉 Subscription finalized:", data.subscription);
+          setSuccess(true);
+        } else {
+          console.warn("⚠️ Subscription not confirmed:", data.message);
+          setSuccess(false);
+        }
+      } catch (error) {
+        console.error("❌ Error finalizing subscription:", error);
+        setSuccess(false);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("❌ Error finalizing subscription:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  finalizeSubscription();
-}, [sessionId]);
+    finalizeSubscription();
+  }, [sessionId]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-[#ce1254] text-white animate-pulse">
         <p className="text-xl font-medium">Verifying your subscription...</p>
       </div>
+    );
+  }
+
+  if (success === false) {
+    return (
+      <RequireAuth>
+        <div className="min-h-screen flex items-center justify-center text-red-500 font-semibold text-xl">
+          ❌ Subscription failed to finalize. Please contact support or try again.
+        </div>
+      </RequireAuth>
     );
   }
 

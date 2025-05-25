@@ -190,15 +190,22 @@ console.log("🔁 subscriptionId:", session.subscription);
 
 function mapPriceIdToPlan(priceId) {
   switch (priceId) {
-    case process.env.Price_Free_Monthly:
-    case process.env.Price_Free_Yearly:
-      return "Basic";
-    case process.env.Price_Basic_Monthly:
-    case process.env.Price_Basic_Yearly:
+    case process.env.NEXT_PUBLIC_PRICE_FREE_MONTHLY:
+    case process.env.NEXT_PUBLIC_PRICE_FREE_YEARLY:
+      return "Basic"; // ✅ or "Free" if you have that tier
+
+    case process.env.NEXT_PUBLIC_PRICE_BASIC_MONTHLY:
+    case process.env.NEXT_PUBLIC_PRICE_BASIC_YEARLY:
+      return "Standard"; // ✅ or "Basic" if that's what it should be
+
+    case process.env.NEXT_PUBLIC_PRICE_STANDARD_MONTHLY:
+    case process.env.NEXT_PUBLIC_PRICE_STANDARD_YEARLY:
       return "Standard";
-    case process.env.Price_Premium_Monthly:
-    case process.env.Price_Premium_Yearly:
+
+    case process.env.NEXT_PUBLIC_PRICE_PREMIUM_MONTHLY:
+    case process.env.NEXT_PUBLIC_PRICE_PREMIUM_YEARLY:
       return "Premium";
+
     default:
       return "Unknown";
   }
