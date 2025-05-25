@@ -1,21 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import RequireAuth from "@/components/RequireAuth";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SubscribeSuccessClient() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const sessionId = searchParams.get("session_id");
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth(); // 🚀 get UID from context
 
   useEffect(() => {
-    if (sessionId) {
-      console.log("✅ Session ID:", sessionId);
-      setLoading(false);
-    }
-  }, [sessionId]);
+    const verifySession = async () => {
+      if (!sessionId || !user?.id) return;
+
+      try {
+        const res = await fetch("/api/subscription/save-subscription", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sessionId,
+            uid: user.id, // 📌 use UID consistently
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          console.log("✅ Subscription verified and saved:", data);
+        } else {
+          console.error("❌ Backend save failed:", data.message);
+        }
+      } catch (error) {
+        console.error("❌ Verification error:", error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    verifySession();
+  }, [sessionId, user?.id]);
 
   if (loading) {
     return (

@@ -14,9 +14,8 @@ var _MediaSubscription = _interopRequireDefault(require("@/models/MediaSubscript
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
 // /app/api/subscription/get-user-subscription/route.js
-// <-- your mongoose connector
 function GET(req) {
-  var userId, subscription;
+  var uid, subscription;
   return regeneratorRuntime.async(function GET$(_context) {
     while (1) {
       switch (_context.prev = _context.next) {
@@ -26,16 +25,16 @@ function GET(req) {
           return regeneratorRuntime.awrap((0, _index["default"])());
 
         case 3:
-          userId = req.headers.get("x-user-id");
+          uid = req.headers.get("x-user-id"); // ✅ Still using this header, but now as UID
 
-          if (userId) {
+          if (uid) {
             _context.next = 6;
             break;
           }
 
           return _context.abrupt("return", _server.NextResponse.json({
             success: false,
-            message: "Missing user ID"
+            message: "Missing UID"
           }, {
             status: 400
           }));
@@ -43,7 +42,7 @@ function GET(req) {
         case 6:
           _context.next = 8;
           return regeneratorRuntime.awrap(_MediaSubscription["default"].findOne({
-            userId: userId
+            uid: uid
           }));
 
         case 8:
@@ -76,7 +75,7 @@ function GET(req) {
             headers: {
               "Content-Type": "application/json",
               "X-Debug-Status": subscription.status || "none",
-              "X-Debug-UserId": subscription.userId || userId || "unknown"
+              "X-Debug-UID": subscription.uid || uid || "unknown"
             }
           }));
 

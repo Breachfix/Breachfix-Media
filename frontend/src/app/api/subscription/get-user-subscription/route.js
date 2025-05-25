@@ -1,22 +1,22 @@
 // /app/api/subscription/get-user-subscription/route.js
 import { NextResponse } from "next/server";
-import connectToDB from "@/database/index"; // <-- your mongoose connector
+import connectToDB from "@/database/index";
 import MediaSubscription from "@/models/MediaSubscription";
 
 export async function GET(req) {
   try {
     await connectToDB();
 
-    const userId = req.headers.get("x-user-id");
+    const uid = req.headers.get("x-user-id"); // ✅ Still using this header, but now as UID
 
-    if (!userId) {
+    if (!uid) {
       return NextResponse.json(
-        { success: false, message: "Missing user ID" },
+        { success: false, message: "Missing UID" },
         { status: 400 }
       );
     }
 
-    const subscription = await MediaSubscription.findOne({ userId });
+    const subscription = await MediaSubscription.findOne({ uid });
 
     if (!subscription || !subscription.planName) {
       return NextResponse.json({
@@ -28,25 +28,25 @@ export async function GET(req) {
     }
 
     if (process.env.NODE_ENV === "development") {
-        console.log("📦 Subscription result:", subscription);
-     }
+      console.log("📦 Subscription result:", subscription);
+    }
 
-return new NextResponse(
-  JSON.stringify({
-    success: true,
-    isActive: subscription.status === "active",
-    status: subscription.status,
-    planName: subscription.planName,
-  }),
-  {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Status": subscription.status || "none",
-      "X-Debug-UserId": subscription.userId || userId ||"unknown",
-    },
-  }
-);
+    return new NextResponse(
+      JSON.stringify({
+        success: true,
+        isActive: subscription.status === "active",
+        status: subscription.status,
+        planName: subscription.planName,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Debug-Status": subscription.status || "none",
+          "X-Debug-UID": subscription.uid || uid || "unknown",
+        },
+      }
+    );
   } catch (err) {
     console.error("❌ Subscription fetch error:", err);
     return NextResponse.json(

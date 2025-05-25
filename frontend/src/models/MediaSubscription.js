@@ -1,9 +1,8 @@
 import mongoose from "mongoose";
 
 const subscriptionSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+  uid: {
+    type: String,
     required: true,
     unique: true,
   },
@@ -33,17 +32,15 @@ const subscriptionSchema = new mongoose.Schema({
   },
   startDate: Date,
   endDate: Date,
-
-  // ✅ NEW FIELDS BELOW
-  amountTotal: Number, // in cents (e.g., 300 = $3.00)
+  amountTotal: Number, // in cents
   currency: String, // e.g., "cad"
-  latestInvoice: String, // Stripe invoice ID
+  latestInvoice: String,
   paymentStatus: {
     type: String,
     enum: ["paid", "unpaid", "failed", "open", "void", "draft"],
   },
   hostedInvoiceUrl: String,
-  metadata: mongoose.Schema.Types.Mixed, // includes optional Stripe metadata like planName, billingCycle, etc.
+  metadata: mongoose.Schema.Types.Mixed,
 }, { timestamps: true });
 
 export default mongoose.models.MediaSubscription ||

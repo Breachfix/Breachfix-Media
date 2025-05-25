@@ -1,4 +1,3 @@
-// File: /src/app/manage-subscriptions/page.js
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,16 +13,21 @@ export default function ManageSubscriptions() {
 
   useEffect(() => {
     const fetchSubscription = async () => {
+      const uid = user?.id || localStorage.getItem("userId");
+      if (!uid) return;
+
       try {
         const res = await fetch("/api/subscription/get-user-subscription", {
           headers: {
-            "x-user-id": user?.id || localStorage.getItem("userId"),
+            "x-uid": uid, // ✅ Switched to consistent UID header
           },
         });
 
         const data = await res.json();
         if (data.success) {
           setSubscription(data);
+        } else {
+          console.warn("⚠️ No active subscription found.");
         }
       } catch (err) {
         console.error("❌ Failed to fetch subscription:", err);
@@ -32,12 +36,16 @@ export default function ManageSubscriptions() {
       }
     };
 
-    if (user?.id || localStorage.getItem("userId")) {
-      fetchSubscription();
-    }
+    fetchSubscription();
   }, [user?.id]);
 
-  if (loading) return <div className="text-center text-white">Loading subscription...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white">
+        Loading your subscription...
+      </div>
+    );
+  }
 
   return (
     <AuthBackground>
@@ -45,13 +53,13 @@ export default function ManageSubscriptions() {
         <div className="w-full max-w-2xl bg-black bg-opacity-70 p-8 rounded-lg shadow-xl">
           <h1 className="text-white text-3xl font-bold mb-4 text-center">Manage Your Subscription</h1>
 
-          {subscription ? (
+          {subscription?.planName ? (
             <div className="text-white space-y-4">
               <p><strong>Plan:</strong> {subscription.planName}</p>
               <p><strong>Status:</strong> {subscription.status}</p>
               <p><strong>Billing Cycle:</strong> {subscription.billingCycle}</p>
-              <p><strong>Start Date:</strong> {new Date(subscription.startDate).toLocaleDateString()}</p>
-              <p><strong>End Date:</strong> {new Date(subscription.endDate).toLocaleDateString()}</p>
+              <p><strong>Start Date:</strong> {subscription.startDate ? new Date(subscription.startDate).toLocaleDateString() : "N/A"}</p>
+              <p><strong>End Date:</strong> {subscription.endDate ? new Date(subscription.endDate).toLocaleDateString() : "N/A"}</p>
 
               <div className="mt-6 space-x-4">
                 <button
@@ -83,4 +91,4 @@ export default function ManageSubscriptions() {
       </div>
     </AuthBackground>
   );
-} 
+}

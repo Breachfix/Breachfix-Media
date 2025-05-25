@@ -1,14 +1,16 @@
 // File: /src/app/api/subscription/save-subscription/route.js
 
 import { NextResponse } from "next/server";
-import clientPromise from "@/lib/mongodb"; //use import connectToDB from "@/database";
-import { ObjectId } from "mongodb";
+import connectToDB from "@/database";
+import MediaSubscription from "@/models/MediaSubscription";
 
 export async function POST(req) {
   try {
+    await connectToDB();
+
     const body = await req.json();
     const {
-      userId,
+      uid, // ✅ Modernized to use UID
       planName,
       billingCycle = "monthly",
       stripeCustomerId,
@@ -16,20 +18,25 @@ export async function POST(req) {
       status = "active",
       startDate,
       endDate,
+      amountTotal,
+      currency,
+      latestInvoice,
+      paymentStatus,
+      hostedInvoiceUrl,
+      metadata = {},
     } = body;
 
-    if (!userId || !planName || !stripeCustomerId || !stripeSubscriptionId) {
-      return NextResponse.json({ success: false, message: "Missing required fields" }, { status: 400 });
+    if (!uid || !planName || !stripeCustomerId || !stripeSubscriptionId) {
+      return NextResponse.json(
+        { success: false, message: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
-    const client = await clientPromise;
-    const db = client.db();
-    const collection = db.collection("mediasubscriptions");
-
-    const filter = { userId: new ObjectId(userId) };
-    const update = {
-      $set: {
-        userId: new ObjectId(userId),
+    const updated = await MediaSubscription.findOneAndUpdate(
+      { uid },
+      {
+        uid,
         planName,
         billingCycle,
         stripeCustomerId,
@@ -37,16 +44,22 @@ export async function POST(req) {
         status,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
-        updatedAt: new Date(),
+        amountTotal: amountTotal ?? null,
+        currency: currency ?? null,
+        latestInvoice: latestInvoice ?? null,
+        paymentStatus: paymentStatus ?? null,
+        hostedInvoiceUrl: hostedInvoiceUrl ?? null,
+        metadata,
       },
-      $setOnInsert: { createdAt: new Date() },
-    };
+      { upsert: true, new: true }
+    );
 
-    const result = await collection.updateOne(filter, update, { upsert: true });
-
-    return NextResponse.json({ success: true, message: "Subscription saved", result });
+    return NextResponse.json({ success: true, message: "Subscription saved", data: updated });
   } catch (err) {
     console.error("❌ Error saving subscription:", err);
-    return NextResponse.json({ success: false, message: "Server error" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "Server error" },
+      { status: 500 }
+    );
   }
 }

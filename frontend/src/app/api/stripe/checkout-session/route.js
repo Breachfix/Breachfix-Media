@@ -1,5 +1,3 @@
-// File: /src/app/api/stripe/checkout-session/route.js
-
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 
@@ -8,9 +6,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { planName, priceId, userId, billingCycle } = body;
+    const { planName, priceId, uid, billingCycle } = body;
 
-    if (!planName || !priceId || !userId) {
+    if (!planName || !priceId || !uid) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -23,13 +21,14 @@ export async function POST(req) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscribe?canceled=true`,
+      customer_creation: "always", // ✅ Ensure customer is created if not exists
       metadata: {
-        userId,
+        uid,            // 👈 use uid instead of userId
         planName,
         billingCycle,
       },
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscribe?canceled=true`,
     });
 
     return NextResponse.json({ url: session.url });

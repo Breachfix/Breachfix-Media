@@ -19,7 +19,6 @@ export default function SubscribePage() {
   const { user } = useAuth();
   const router = useRouter();
 
-  // ✅ MOVE THIS ⬇️ TO THE TOP (before using it in JSX or other logic)
   const plans = [
     {
       name: "Basic",
@@ -91,12 +90,12 @@ export default function SubscribePage() {
 
   useEffect(() => {
     const fetchCurrentSubscription = async () => {
-      const userId = user?.id || localStorage.getItem("userId");
-      if (!userId) return;
+      const uid = user?.id || localStorage.getItem("userId");
+      if (!uid) return;
 
       try {
         const res = await fetch("/api/subscription/get-user-subscription", {
-          headers: { "x-user-id": userId }
+          headers: { "x-uid": uid }
         });
         const data = await res.json();
         if (data.success && data.planName) {
@@ -139,21 +138,21 @@ export default function SubscribePage() {
 
   const handleSubscribe = async (plan) => {
     const priceId = stripePriceIds[plan.name][billingCycle];
-    const userId = user?.id;
-    if (!userId || !priceId) return;
+    const uid = user?.id;
+    if (!uid || !priceId) return;
 
     try {
       const res = await fetch("/api/stripe/checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planName: plan.name, priceId, userId, billingCycle })
+        body: JSON.stringify({ planName: plan.name, priceId, uid, billingCycle })
       });
       console.log("Subscribing:", {
-  plan: plan.name,
-  userId,
-  priceId,
-  billingCycle
-});
+        plan: plan.name,
+        uid,
+        priceId,
+        billingCycle
+      });
 
       const data = await res.json();
       if (data?.url) window.location.href = data.url;
@@ -175,7 +174,7 @@ export default function SubscribePage() {
             <p className="text-center text-gray-300 mb-6">
               Watch unlimited faith-based videos. Cancel anytime.
             </p>
-            <HandleCanceledParam setCanceled={setCanceled} /> {/* ✅ Inserted here */}
+            <HandleCanceledParam setCanceled={setCanceled} />
             <PlanToggle billingCycle={billingCycle} setBillingCycle={setBillingCycle} />
             <PlanComparisonTable
               plans={plans}
