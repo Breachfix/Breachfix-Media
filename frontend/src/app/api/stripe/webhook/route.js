@@ -103,25 +103,60 @@ export async function POST(req) {
       break;
     }
 
-    case "checkout.session.completed": {
-      const session = event.data.object;
-      const userId = session.metadata?.userId;
-      const stripeCustomerId = session.customer;
+case "checkout.session.completed": {
+  const session = event.data.object;
+  const userId = session.metadata?.userId;
+  const stripeCustomerId = session.customer;
+  const subscriptionId = session.subscription; // ✅ This gives the real subscription ID
 
-      if (!userId || !stripeCustomerId) {
-        console.error("❌ Missing userId or customer in session metadata");
-        break;
-      }
+  if (!userId || !stripeCustomerId || !subscriptionId) {
+    console.error("❌ Missing required fields in session");
+    break;
+  }
 
-      try {
-        await linkCustomerIdToUser(userId, stripeCustomerId);
-        console.log(`✅ Linked user ${userId} with Stripe customer ${stripeCustomerId}`);
-      } catch (err) {
-        console.error("❌ Error linking Stripe customer ID:", err.message);
-      }
+  try {
+    // Link Stripe customer ID to the user
+    await linkCustomerIdToUser(userId, stripeCustomerId);
+    console.log(`✅ Linked user ${userId} with Stripe customer ${stripeCustomerId}`);
 
-      break;
+    // Fetch full subscription from Stripe
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+    // Also get the invoice if available
+    let invoice = null;
+    if (subscription.latest_invoice) {
+      invoice = await stripe.invoices.retrieve(subscription.latest_invoice);
     }
+
+    // Save full subscription info in MongoDB
+    const saved = await MediaSubscription.findOneAndUpdate(
+      { userId },
+      {
+        userId,
+        stripeCustomerId,
+        stripeSubscriptionId: subscription.id,
+        status: subscription.status,
+        startDate: new Date(subscription.start_date * 1000),
+        endDate: new Date(subscription.current_period_end * 1000),
+        planName: mapPriceIdToPlan(subscription.items.data[0].price.id),
+        billingCycle: mapPriceIdToCycle(subscription.items.data[0].price.id),
+        amountTotal: invoice?.amount_paid || null,
+        currency: invoice?.currency || null,
+        latestInvoice: invoice?.id || null,
+        paymentStatus: invoice?.status || null,
+        hostedInvoiceUrl: invoice?.hosted_invoice_url || null,
+        metadata: subscription.metadata || {},
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log("📦 Subscription updated:", saved);
+  } catch (err) {
+    console.error("❌ Error handling checkout.session.completed:", err.message);
+  }
+
+  break;
+}
 
     case "invoice.payment_succeeded":
       console.log("✅ Invoice payment succeeded");
