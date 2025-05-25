@@ -13,35 +13,34 @@ export default function LoginPage() {
   const [loginError, setLoginError] = useState(false);
   const { reloadUser } = useAuth();
 
-    const handleLogin = async (e) => {
-    e.preventDefault(); // ✅ Prevent page reload
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
     try {
       const res = await login({ email, password });
 
       if (res.success) {
         const user = res.user;
-        sessionStorage.setItem("loggedInAccount", JSON.stringify(user));
-        localStorage.setItem("authToken", res.token);
+
+        // ✅ Use accessToken & refreshToken
+        localStorage.setItem("authToken", res.accessToken); // Not res.token
+        localStorage.setItem("refreshToken", res.refreshToken);
         localStorage.setItem("userId", user.id);
+
+        // Optional: save loggedInAccount (sub-profile context)
+        sessionStorage.setItem("loggedInAccount", JSON.stringify(user));
+
         setLoginError(false);
 
-         // ✅ Reload context so RequireAuth doesn't fire incorrectly
-         await reloadUser();
-
-        const redirectPath = sessionStorage.getItem("redirectAfterLogin");
-
-        if (redirectPath) {
-          sessionStorage.removeItem("redirectAfterLogin");
-          await router.replace(redirectPath); // ✅ Use await
-          return;
+        // 🔄 Try to load full user profile
+        try {
+          await reloadUser();
+        } catch (err) {
+          console.warn("⚠️ Could not fetch full profile. Will continue anyway.");
         }
 
-        // if (!user.subscription || user.subscription.status !== "active") {
-        //   await router.replace("/subscribe");
-        //   return;
-        // }
-
-        await router.replace("/browse");
+        // ✅ Always redirect to /subscribe regardless of profile load success
+        router.replace("/subscribe");
       } else {
         setLoginError(true);
       }
@@ -54,28 +53,33 @@ export default function LoginPage() {
     <AuthBackground>
       <div className="bg-black bg-opacity-60 p-8 rounded shadow-lg text-white w-full max-w-sm space-y-4">
         <h1 className="text-2xl font-bold text-center">Sign In</h1>
-        <input
-          type="email"
-          placeholder="Email"
-          className="p-3 rounded text-black w-full"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          className="p-3 rounded text-black w-full"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button
-          onClick={handleLogin}
-          className="w-full bg-red-600 hover:bg-[#e50914] p-3 rounded text-white"
-        >
-          Sign In
-        </button>
+<form onSubmit={handleLogin} className="space-y-4">
+  <input
+    type="email"
+    placeholder="Email"
+    className="p-3 rounded text-black w-full"
+    value={email}
+    onChange={(e) => setEmail(e.target.value)}
+    autoComplete="email"
+    required
+  />
+  <input
+    type="password"
+    placeholder="Password"
+    className="p-3 rounded text-black w-full"
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    autoComplete="current-password"
+    required
+  />
+  <button
+    type="submit"
+    className="w-full bg-red-600 hover:bg-[#e50914] p-3 rounded text-white"
+  >
+    Sign In
+  </button>
+</form>
 
-        {/* 🔐 Show Forgot Password on error */}
         {loginError && (
           <p className="text-sm text-center text-yellow-300">
             <span

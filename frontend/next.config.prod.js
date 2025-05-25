@@ -8,6 +8,9 @@ const nextProdConfig = {
       "firebasestorage.googleapis.com",
     ],
   },
+  generateBuildId: async () => {
+    return `${Date.now()}`; // use dynamic ID in CI if needed
+  },
   async headers() {
     return [
       {

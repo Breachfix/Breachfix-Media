@@ -9,52 +9,36 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // 🔄 Utility to get current logged-in sub-account (profile)
-  const getLoggedInAccount = () =>
-    JSON.parse(sessionStorage.getItem("loggedInAccount")) || null;
-
-  // 🔄 Utility to get UID
   const getUserId = () => user?.id || localStorage.getItem("userId");
+  const getLoggedInAccount = () => JSON.parse(sessionStorage.getItem("loggedInAccount")) || null;
 
-  // 🔐 Load fallback from storage if API fails
-const loadUserFromStorage = () => {
-  const storedUserId =
-    localStorage.getItem("userId") || sessionStorage.getItem("userId");
-
-  if (storedUserId) {
-    setUser({ id: storedUserId });
-    console.log("📦 Loaded main user ID from storage:", storedUserId);
-  } else {
-    setUser(null);
-    console.error("❌ No user ID found in storage.");
-  }
-};
-
-  const loadUser = async () => {
-    try {
-      console.log("🔄 Attempting to fetch user profile from API...");
-      const res = await fetchUserProfile();
-      console.log("✅ Fetched user profile:", res);
-
-      if (res?.id || res?._id) {
-        const userId = res.id || res._id;
-        setUser({ id: userId, ...res });
-        sessionStorage.setItem("userId", userId);
-        localStorage.setItem("userId", userId);
-        console.log("🎯 User ID found and stored:", userId);
-      } else {
-        throw new Error("❌ User profile missing ID");
-      }
-    } catch (err) {
-      console.warn("⚠️ Failed to fetch user profile from API. Falling back to storage.");
-      loadUserFromStorage();
-    } finally {
-      setAuthLoading(false);
-      console.log("✅ Finished loading user.");
+  const loadUserFromStorage = () => {
+    const userId = localStorage.getItem("userId");
+    if (userId) {
+      setUser({ id: userId });
+      console.log("📦 Fallback: Loaded user from localStorage:", userId);
+    } else {
+      console.warn("⚠️ No userId found in localStorage");
+      setUser(null);
     }
   };
 
-  // 🔄 Manually trigger user reload after login
+  const loadUser = async () => {
+    try {
+      const res = await fetchUserProfile();
+      const userId = res?.user?.id || res?.user?._id;
+      if (!userId) throw new Error("❌ User ID missing from profile");
+
+      setUser({ id: userId, ...res.user });
+      localStorage.setItem("userId", userId);
+    } catch (err) {
+      console.warn("⚠️ Profile fetch failed, using fallback.");
+      loadUserFromStorage();
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const reloadUser = async () => {
     setAuthLoading(true);
     await loadUser();
@@ -68,23 +52,22 @@ const loadUserFromStorage = () => {
     }
 
     setUser(null);
-    sessionStorage.removeItem("loggedInAccount");
     localStorage.removeItem("authToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("userId");
+    sessionStorage.removeItem("loggedInAccount");
 
-    console.log("👋 User logged out and all data cleared.");
     window.location.href = "/auth/login";
   };
 
-useEffect(() => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    loadUser();
-  } else {
-    setAuthLoading(false); // No token, don’t call profile
-  }
-}, []);
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      loadUser();
+    } else {
+      setAuthLoading(false);
+    }
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -93,9 +76,9 @@ useEffect(() => {
         setUser,
         authLoading,
         handleLogout,
-        getLoggedInAccount,
         getUserId,
-        reloadUser
+        getLoggedInAccount,
+        reloadUser,
       }}
     >
       {children}

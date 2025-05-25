@@ -1,28 +1,25 @@
 
-import axios from 'axios';
+// src/lib/api.js
+import axios from "axios";
 
-const API = process.env.NEXT_PUBLIC_API_BASE_URL; 
-const API_URL = `${API}/api/v1`; // Backend URL for the API
+const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_URL = `${API}/api/v1`;
 
-// Create an Axios instance
-const api = axios.create({
-  baseURL: API_URL,
-});
+const api = axios.create({ baseURL: API_URL });
 
-// Add Authorization header if token exists
+// ✅ Add Authorization header on each request
 api.interceptors.request.use(
   (config) => {
-    const token = typeof window !== 'undefined' && localStorage.getItem('authToken');
+    const token = typeof window !== "undefined" && localStorage.getItem("authToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-    } else {
-      console.warn("⚠️ No token found in localStorage at time of API call.");
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
+export default api;
 // -----------------
 // Authentication
 // -----------------
@@ -58,14 +55,30 @@ export const signup = async (data) => {
   }
 };
 
+
+// 🔒 Authenticated Axios instance with token
+export const apiWithAuth = () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.warn("⚠️ No token found for authenticated request.");
+  }
+
+  return axios.create({
+    baseURL: API_URL,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
+// Fetch user profile
+// Then use:
 export const fetchUserProfile = async () => {
   try {
-    const response = await api.get('/auth/profile');
-    const token = localStorage.getItem('authToken');
-    console.log("🔑 Token being sent:", token);
-    return response.data;
+    const res = await apiWithAuth().get("/auth/profile");
+    return res.data;
   } catch (error) {
-    console.error('Error fetching user profile:', error.response?.data || error.message || err);
+    console.error("❌ Error fetching user profile:", error.response?.data || error.message);
     throw error;
   }
 };
