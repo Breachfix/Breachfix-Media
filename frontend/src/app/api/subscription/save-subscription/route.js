@@ -24,9 +24,9 @@ export async function POST(req) {
       metadata = {},
     } = body;
 
-    if (!userId || !planName || !stripeCustomerId || !stripeSubscriptionId) {
+    if (!userId || userId === "pending" || userId === null) {
       return NextResponse.json(
-        { success: false, message: "Missing required fields" },
+        { success: false, message: "Invalid userId – cannot be 'pending' or null" },
         { status: 400 }
       );
     }

@@ -30,6 +30,10 @@ const subscriptionSchema = new mongoose.Schema({
     enum: ["active", "trialing", "canceled", "incomplete", "past_due"],
     default: "active",
   },
+  finalized: {
+  type: Boolean,
+  default: false,
+},
   startDate: Date,
   endDate: Date,
   amountTotal: Number, // in cents
@@ -42,6 +46,7 @@ const subscriptionSchema = new mongoose.Schema({
   hostedInvoiceUrl: String,
   metadata: mongoose.Schema.Types.Mixed,
 }, { timestamps: true });
+
 
 export default mongoose.models.MediaSubscription ||
   mongoose.model("MediaSubscription", subscriptionSchema);

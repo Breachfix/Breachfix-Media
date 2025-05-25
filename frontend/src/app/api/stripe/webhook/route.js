@@ -49,6 +49,7 @@ export async function POST(req) {
         // Link customer ID to user
         await linkCustomerIdToUser(userId, stripeCustomerId);
         console.log(`✅ Linked user ${userId} with Stripe customer ${stripeCustomerId}`);
+        
 
         // Retrieve full subscription
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -57,9 +58,9 @@ export async function POST(req) {
           : null;
 
         const saved = await MediaSubscription.findOneAndUpdate(
-          { userId },
+          { userId: userId.toString() },
           {
-            userId,
+            userId: userId.toString(),
             stripeCustomerId,
             stripeSubscriptionId: subscription.id,
             status: subscription.status,
@@ -73,6 +74,7 @@ export async function POST(req) {
             paymentStatus: invoice?.status || null,
             hostedInvoiceUrl: invoice?.hosted_invoice_url || null,
             metadata: subscription.metadata || {},
+            finalized: true, // ✅ mark as finalized
           },
           { upsert: true, new: true }
         );
@@ -80,10 +82,15 @@ export async function POST(req) {
         console.log("📦 Subscription updated:", saved);
       } catch (err) {
         console.error("❌ Error during checkout.session.completed:", err);
-      }
+      } 
+      console.log("✅ Webhook hit: checkout.session.completed");
+console.log("🧾 session.metadata.userId:", session.metadata?.userId);
+console.log("💳 stripeCustomerId:", session.customer);
+console.log("🔁 subscriptionId:", session.subscription);
 
       break;
     }
+    
     case "customer.subscription.created":
     case "customer.subscription.updated":
     case "customer.subscription.resumed":

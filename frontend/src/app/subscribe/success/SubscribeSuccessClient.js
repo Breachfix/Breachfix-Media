@@ -10,12 +10,31 @@ export default function SubscribeSuccessClient() {
   const sessionId = searchParams.get("session_id");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (sessionId) {
+useEffect(() => {
+  const finalizeSubscription = async () => {
+    if (!sessionId) return;
+
+    try {
       console.log("✅ Session ID:", sessionId);
+
+      // Call your backend endpoint to verify and finalize the subscription
+      const res = await fetch(`/api/stripe/finalize-subscription?session_id=${sessionId}`);
+      const data = await res.json();
+
+      if (data.success) {
+        console.log("🎉 Subscription finalized:", data.subscription);
+      } else {
+        console.warn("⚠️ Subscription not confirmed:", data.message);
+      }
+    } catch (err) {
+      console.error("❌ Error finalizing subscription:", err);
+    } finally {
       setLoading(false);
     }
-  }, [sessionId]);
+  };
+
+  finalizeSubscription();
+}, [sessionId]);
 
   if (loading) {
     return (

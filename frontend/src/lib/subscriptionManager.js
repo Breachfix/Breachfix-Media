@@ -39,8 +39,15 @@ export async function saveUserSubscription(payload) {
     const res = await fetch(`${BASE_INTERNAL_API}/save-subscription`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        metadata: {
+          ...(payload.metadata || {}),
+          initializedFromClient: true, // ✅ Mark as client-initialized
+        },
+      }),
     });
+
     return await res.json();
   } catch (err) {
     console.error("❌ Error saving subscription:", err);
