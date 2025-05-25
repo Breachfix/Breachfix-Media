@@ -64,8 +64,7 @@ export async function POST(req) {
             stripeCustomerId,
             stripeSubscriptionId: subscription.id,
             status: subscription.status,
-            startDate: new Date(subscription.start_date * 1000),
-            endDate: new Date(subscription.current_period_end * 1000),
+            
             planName: mapPriceIdToPlan(subscription.items.data[0].price.id),
             billingCycle: mapPriceIdToCycle(subscription.items.data[0].price.id),
             amountTotal: invoice?.amount_paid || null,
@@ -75,6 +74,13 @@ export async function POST(req) {
             hostedInvoiceUrl: invoice?.hosted_invoice_url || null,
             metadata: subscription.metadata || {},
             finalized: true, // ✅ mark as finalized
+            startDate: subscription.start_date
+            ? new Date(subscription.start_date * 1000)
+            : null,
+
+            endDate: subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000)
+            : null,
           },
           { upsert: true, new: true }
         );
@@ -112,8 +118,6 @@ console.log("🔁 subscriptionId:", session.subscription);
             stripeCustomerId: subscription.customer,
             stripeSubscriptionId: subscription.id,
             status: subscription.status,
-            startDate: new Date(subscription.start_date * 1000),
-            endDate: new Date(subscription.current_period_end * 1000),
             planName: mapPriceIdToPlan(subscription.items.data[0].price.id),
             billingCycle: mapPriceIdToCycle(subscription.items.data[0].price.id),
             amountTotal: invoice?.amount_paid || null,
@@ -122,7 +126,16 @@ console.log("🔁 subscriptionId:", session.subscription);
             paymentStatus: invoice?.status || null,
             hostedInvoiceUrl: invoice?.hosted_invoice_url || null,
             metadata: subscription.metadata || {},
+            startDate: subscription.start_date
+            ? new Date(subscription.start_date * 1000)
+            : null,
+
+            endDate: subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000)
+            : null,
           },
+            
+          
           { upsert: true, new: true }
         );
 
