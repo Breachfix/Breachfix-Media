@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -17,10 +18,18 @@ import {
   updateStripeSubscription,
 } from "@/lib/subscriptionManager";
 
-const localPlans = [
+export default function SubscribePage() {
+  const [selectedPlan, setSelectedPlan] = useState("Basic");
+  const [billingCycle, setBillingCycle] = useState("monthly");
+  const [userSubscription, setUserSubscription] = useState(null);
+  const [canceled, setCanceled] = useState(false);
+  const { user } = useAuth();
+  const router = useRouter();
+
+const plans = [
   {
-    name: "Basic",
-    prices: {},
+    name: "Basic", // Matches FREE plan in Stripe, labeled as "Basic" in your plan map
+    prices: { monthly: "$0", yearly: "$0" },
     quality: "Good",
     resolution: "480p",
     devices: "1",
@@ -40,8 +49,8 @@ const localPlans = [
     ],
   },
   {
-    name: "Standard",
-    prices: {},
+    name: "Standard", // Matches BASIC price IDs in Stripe
+    prices: { monthly: "$5", yearly: "$50" },
     quality: "Better",
     resolution: "720p",
     devices: "2",
@@ -62,7 +71,7 @@ const localPlans = [
   },
   {
     name: "Premium",
-    prices: {},
+    prices: { monthly: "$15", yearly: "$150" },
     quality: "Best",
     resolution: "1080p + 4K",
     devices: "4",
@@ -84,37 +93,7 @@ const localPlans = [
   },
 ];
 
-export default function SubscribePage() {
-  const [selectedPlan, setSelectedPlan] = useState("Basic");
-  const [billingCycle, setBillingCycle] = useState("monthly");
-  const [userSubscription, setUserSubscription] = useState(null);
-  const [canceled, setCanceled] = useState(false);
-  const [plans, setPlans] = useState(localPlans);
-  const { user } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        const res = await fetch("/api/stripe/billing/load-plans");
-        const data = await res.json();
-        if (data.success) {
-          const merged = localPlans.map((local) => {
-            const match = data.plans.find((p) => p.name === local.name);
-            return {
-              ...local,
-              name: match?.name || local.name,
-              prices: match?.prices || {},
-            };
-          });
-          setPlans(merged);
-        }
-      } catch (err) {
-        console.error("❌ Error loading plans:", err);
-      }
-    };
-    fetchPlans();
-  }, []);
+  const currentPlan = plans.find((p) => p.name === selectedPlan);
 
   useEffect(() => {
     const fetchCurrentSubscription = async () => {
@@ -146,8 +125,23 @@ export default function SubscribePage() {
     return "Downgrade to this plan";
   };
 
+const stripePriceIds = {
+  Basic: {
+    monthly: process.env.NEXT_PUBLIC_PRICE_FREE_MONTHLY, // Matches "Basic" in `mapPriceIdToPlan`
+    yearly: process.env.NEXT_PUBLIC_PRICE_FREE_YEARLY,
+  },
+  Standard: {
+    monthly: process.env.NEXT_PUBLIC_PRICE_BASIC_MONTHLY, // Matches "Standard" in `mapPriceIdToPlan`
+    yearly: process.env.NEXT_PUBLIC_PRICE_BASIC_YEARLY,
+  },
+  Premium: {
+    monthly: process.env.NEXT_PUBLIC_PRICE_PREMIUM_MONTHLY,
+    yearly: process.env.NEXT_PUBLIC_PRICE_PREMIUM_YEARLY,
+  },
+};
+
   const handleSubscribe = async (plan) => {
-    const priceId = plan.prices[billingCycle]?.id;
+    const priceId = stripePriceIds[plan.name][billingCycle];
     const userId = user?.id;
     if (!userId || !priceId) return;
 
@@ -175,8 +169,6 @@ export default function SubscribePage() {
       console.error("❌ Failed to create Stripe session:", error.message);
     }
   };
-
-  const currentPlan = plans.find((p) => p.name === selectedPlan);
 
   return (
     <RequireAuth>
