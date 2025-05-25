@@ -12,11 +12,11 @@ const subscriptionSchema = new mongoose.Schema({
     enum: ["Basic", "Standard", "Premium"],
     required: true,
   },
-    billingCycle: {
+  billingCycle: {
     type: String,
     enum: ["monthly", "yearly"],
+    default: "monthly",
     required: true,
-    default: "monthly"
   },
   stripeCustomerId: {
     type: String,
@@ -33,6 +33,18 @@ const subscriptionSchema = new mongoose.Schema({
   },
   startDate: Date,
   endDate: Date,
+
+  // ✅ NEW FIELDS BELOW
+  amountTotal: Number, // in cents (e.g., 300 = $3.00)
+  currency: String, // e.g., "cad"
+  latestInvoice: String, // Stripe invoice ID
+  paymentStatus: {
+    type: String,
+    enum: ["paid", "unpaid", "failed", "open", "void", "draft"],
+  },
+  hostedInvoiceUrl: String,
+  metadata: mongoose.Schema.Types.Mixed, // includes optional Stripe metadata like planName, billingCycle, etc.
 }, { timestamps: true });
 
-export default mongoose.models.MediaSubscription || mongoose.model("MediaSubscription", subscriptionSchema);
+export default mongoose.models.MediaSubscription ||
+  mongoose.model("MediaSubscription", subscriptionSchema);

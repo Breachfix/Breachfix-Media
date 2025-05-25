@@ -176,37 +176,51 @@ export async function POST(req) {
 
   // Handle events
   switch (event.type) {
-    case "customer.subscription.created":
-    case "customer.subscription.updated":
-    case "customer.subscription.resumed":
-    case "customer.subscription.pending_update_applied": {
-      const subscription = event.data.object;
+case "customer.subscription.created":
+case "customer.subscription.updated":
+case "customer.subscription.resumed":
+case "customer.subscription.pending_update_applied": {
+  const subscription = event.data.object;
 
-      try {
-        const user = await fetchUserByStripeCustomerId(subscription.customer);
+  try {
+    const user = await fetchUserByStripeCustomerId(subscription.customer);
 
-        const saved = await MediaSubscription.findOneAndUpdate(
-          { userId: user._id },
-          {
-            userId: user._id,
-            stripeCustomerId: subscription.customer,
-            stripeSubscriptionId: subscription.id,
-            status: subscription.status,
-            startDate: new Date(subscription.start_date * 1000),
-            endDate: new Date(subscription.current_period_end * 1000),
-            planName: mapPriceIdToPlan(subscription.items.data[0].price.id),
-            billingCycle: mapPriceIdToCycle(subscription.items.data[0].price.id),
-          },
-          { upsert: true, new: true }
-        );
-
-        console.log(`✅ Subscription updated for ${user.email}`);
-      } catch (err) {
-        console.error("❌ Error updating subscription:", err.message);
-      }
-
-      break;
+    // Fetch the latest invoice if available
+    let invoice = null;
+    if (subscription.latest_invoice) {
+      invoice = await stripe.invoices.retrieve(subscription.latest_invoice);
     }
+
+    const saved = await MediaSubscription.findOneAndUpdate(
+      { userId: user._id },
+      {
+        userId: user._id,
+        stripeCustomerId: subscription.customer,
+        stripeSubscriptionId: subscription.id,
+        status: subscription.status,
+        startDate: new Date(subscription.start_date * 1000),
+        endDate: new Date(subscription.current_period_end * 1000),
+        planName: mapPriceIdToPlan(subscription.items.data[0].price.id),
+        billingCycle: mapPriceIdToCycle(subscription.items.data[0].price.id),
+
+        // ✅ new fields below
+        amountTotal: invoice?.amount_paid || null,
+        currency: invoice?.currency || null,
+        latestInvoice: invoice?.id || null,
+        paymentStatus: invoice?.status || null,
+        hostedInvoiceUrl: invoice?.hosted_invoice_url || null,
+        metadata: subscription.metadata || {},
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log(`✅ Subscription updated for ${user.email}`);
+  } catch (err) {
+    console.error("❌ Error updating subscription:", err.message);
+  }
+
+  break;
+}
 
     case "customer.subscription.deleted":
     case "customer.subscription.paused":
