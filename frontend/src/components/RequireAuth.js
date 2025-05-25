@@ -20,13 +20,19 @@ export default function RequireAuth({ children }) {
       }
 
       // Logged in but not subscribed
+      const allowedWithoutActiveSubscription = [
+            "/subscribe/success",
+             "/debug/finalize-subscription",
+      ];
+
       if (
-        window.location.pathname !== "/subscribe" &&
-        (!user.subscription || user.subscription.status !== "active")
-      ) {
-        router.replace("/subscribe");
-        return;
-      }
+           !allowedWithoutActiveSubscription.includes(window.location.pathname) &&
+           (!user.subscription || user.subscription.status !== "active")
+         ) {
+            router.replace("/subscribe");
+             return;
+           }
+      
 
       setHasCheckedAuth(true);
     }
