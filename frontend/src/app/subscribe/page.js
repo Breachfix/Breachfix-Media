@@ -25,72 +25,72 @@ export default function SubscribePage() {
   const { user } = useAuth();
   const router = useRouter();
 
-  const plans = [
-    {
-      name: "Basic",
-      prices: { monthly: "$5", yearly: "$50" },
-      quality: "Good",
-      resolution: "480p",
-      devices: "1",
-      downloads: false,
-      description: `Perfect for individuals seeking faith-based content on a single device.`,
-      features: [
-        "480p streaming quality",
-        "Watch on 1 device",
-        "Access to sermons, kids content, devotionals",
-        "Safe environment, no ads or profanity",
-        "Christ-centered storytelling to uplift your spirit",
-      ],
-      images: [
-        "/images/basic-1.png",
-        "/images/basic-2.png",
-        "/images/basic-3.png",
-      ],
-    },
-    {
-      name: "Standard",
-      prices: { monthly: "$10", yearly: "$100" },
-      quality: "Better",
-      resolution: "720p",
-      devices: "2",
-      downloads: true,
-      description: `Ideal for couples or families.`,
-      features: [
-        "720p streaming quality",
-        "Watch on 2 devices",
-        "Download to watch offline",
-        "Early access to upcoming series",
-        "Interactive content to grow spiritually together",
-      ],
-      images: [
-        "/images/standard-1.png",
-        "/images/standard-2.png",
-        "/images/standard-3.png",
-      ],
-    },
-    {
-      name: "Premium",
-      prices: { monthly: "$15", yearly: "$150" },
-      quality: "Best",
-      resolution: "1080p + 4K",
-      devices: "4",
-      downloads: true,
-      description: `Great for households, ministries, or groups.`,
-      features: [
-        "4K Ultra HD streaming",
-        "Up to 4 profiles/devices",
-        "Full offline library access",
-        "Exclusive Christian series and documentaries",
-        "Family devotions, study series, gospel-based recovery resources",
-        "Community prayer and faith tools",
-      ],
-      images: [
-        "/images/premium-1.png",
-        "/images/premium-2.png",
-        "/images/premium-3.png",
-      ],
-    },
-  ];
+const plans = [
+  {
+    name: "Basic", // Matches FREE plan in Stripe, labeled as "Basic" in your plan map
+    prices: { monthly: "$0", yearly: "$0" },
+    quality: "Good",
+    resolution: "480p",
+    devices: "1",
+    downloads: false,
+    description: `Perfect for individuals seeking faith-based content on a single device.`,
+    features: [
+      "480p streaming quality",
+      "Watch on 1 device",
+      "Access to sermons, kids content, devotionals",
+      "Safe environment, no ads or profanity",
+      "Christ-centered storytelling to uplift your spirit",
+    ],
+    images: [
+      "/images/basic-1.png",
+      "/images/basic-2.png",
+      "/images/basic-3.png",
+    ],
+  },
+  {
+    name: "Standard", // Matches BASIC price IDs in Stripe
+    prices: { monthly: "$5", yearly: "$50" },
+    quality: "Better",
+    resolution: "720p",
+    devices: "2",
+    downloads: true,
+    description: `Ideal for couples or families.`,
+    features: [
+      "720p streaming quality",
+      "Watch on 2 devices",
+      "Download to watch offline",
+      "Early access to upcoming series",
+      "Interactive content to grow spiritually together",
+    ],
+    images: [
+      "/images/standard-1.png",
+      "/images/standard-2.png",
+      "/images/standard-3.png",
+    ],
+  },
+  {
+    name: "Premium",
+    prices: { monthly: "$15", yearly: "$150" },
+    quality: "Best",
+    resolution: "1080p + 4K",
+    devices: "4",
+    downloads: true,
+    description: `Great for households, ministries, or groups.`,
+    features: [
+      "4K Ultra HD streaming",
+      "Up to 4 profiles/devices",
+      "Full offline library access",
+      "Exclusive Christian series and documentaries",
+      "Family devotions, study series, gospel-based recovery resources",
+      "Community prayer and faith tools",
+    ],
+    images: [
+      "/images/premium-1.png",
+      "/images/premium-2.png",
+      "/images/premium-3.png",
+    ],
+  },
+];
 
   const currentPlan = plans.find((p) => p.name === selectedPlan);
 
@@ -124,20 +124,20 @@ export default function SubscribePage() {
     return "Downgrade to this plan";
   };
 
-  const stripePriceIds = {
-    Basic: {
-      monthly: process.env.NEXT_PUBLIC_PRICE_BASIC_MONTHLY,
-      yearly: process.env.NEXT_PUBLIC_PRICE_BASIC_YEARLY,
-    },
-    Standard: {
-      monthly: process.env.NEXT_PUBLIC_PRICE_STANDARD_MONTHLY,
-      yearly: process.env.NEXT_PUBLIC_PRICE_STANDARD_YEARLY,
-    },
-    Premium: {
-      monthly: process.env.NEXT_PUBLIC_PRICE_PREMIUM_MONTHLY,
-      yearly: process.env.NEXT_PUBLIC_PRICE_PREMIUM_YEARLY,
-    },
-  };
+const stripePriceIds = {
+  Basic: {
+    monthly: process.env.NEXT_PUBLIC_PRICE_FREE_MONTHLY, // Matches "Basic" in `mapPriceIdToPlan`
+    yearly: process.env.NEXT_PUBLIC_PRICE_FREE_YEARLY,
+  },
+  Standard: {
+    monthly: process.env.NEXT_PUBLIC_PRICE_BASIC_MONTHLY, // Matches "Standard" in `mapPriceIdToPlan`
+    yearly: process.env.NEXT_PUBLIC_PRICE_BASIC_YEARLY,
+  },
+  Premium: {
+    monthly: process.env.NEXT_PUBLIC_PRICE_PREMIUM_MONTHLY,
+    yearly: process.env.NEXT_PUBLIC_PRICE_PREMIUM_YEARLY,
+  },
+};
 
   const handleSubscribe = async (plan) => {
     const priceId = stripePriceIds[plan.name][billingCycle];

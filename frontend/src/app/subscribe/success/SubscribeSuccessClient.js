@@ -9,34 +9,12 @@ export default function SubscribeSuccessClient() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const [loading, setLoading] = useState(true);
-  const [success, setSuccess] = useState(null); // ✅ track success/failure
 
   useEffect(() => {
-    if (!sessionId) return;
-
-    const finalizeSubscription = async () => {
-      try {
-        console.log("✅ Session ID:", sessionId);
-
-        const res = await fetch(`/api/stripe/finalize-subscription?session_id=${sessionId}`);
-        const data = await res.json();
-
-        if (data.success) {
-          console.log("🎉 Subscription finalized:", data.subscription);
-          setSuccess(true);
-        } else {
-          console.warn("⚠️ Subscription not confirmed:", data.message);
-          setSuccess(false);
-        }
-      } catch (error) {
-        console.error("❌ Error finalizing subscription:", error);
-        setSuccess(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    finalizeSubscription();
+    if (sessionId) {
+      console.log("✅ Session ID:", sessionId);
+      setLoading(false);
+    }
   }, [sessionId]);
 
   if (loading) {
@@ -44,16 +22,6 @@ export default function SubscribeSuccessClient() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-[#ce1254] text-white animate-pulse">
         <p className="text-xl font-medium">Verifying your subscription...</p>
       </div>
-    );
-  }
-
-  if (success === false) {
-    return (
-      <RequireAuth>
-        <div className="min-h-screen flex items-center justify-center text-red-500 font-semibold text-xl">
-          ❌ Subscription failed to finalize. Please contact support or try again.
-        </div>
-      </RequireAuth>
     );
   }
 
@@ -70,12 +38,9 @@ export default function SubscribeSuccessClient() {
           </h1>
 
           <p className="text-lg text-gray-300 mb-6">
-            Thank you for joining our{" "}
-            <span className="text-yellow-400 font-semibold">
-              faith-powered
-            </span>{" "}
-            streaming journey. Your support helps us build a cleaner,
-            God-honoring entertainment world.
+            Thank you for joining our {" "}
+            <span className="text-yellow-400 font-semibold">faith-powered</span>{" "}
+            streaming journey. Your support helps us build a cleaner, God-honoring entertainment world.
           </p>
 
           <a
