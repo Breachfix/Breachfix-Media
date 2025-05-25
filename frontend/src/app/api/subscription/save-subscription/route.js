@@ -24,6 +24,7 @@ export async function POST(req) {
       metadata = {},
     } = body;
 
+    // ✅ Validate userId
     if (!userId || userId === "pending" || userId === null) {
       return NextResponse.json(
         { success: false, message: "Invalid userId – cannot be 'pending' or null" },
@@ -31,6 +32,17 @@ export async function POST(req) {
       );
     }
 
+    // ✅ Add this guard against stale writes
+    const existing = await MediaSubscription.findOne({ userId: userId.toString() });
+    if (existing && existing.status !== "pending") {
+      return NextResponse.json({
+        success: false,
+        message: "Subscription already finalized",
+        data: existing,
+      });
+    }
+
+    // ✅ Proceed with save or update
     const updated = await MediaSubscription.findOneAndUpdate(
       { userId: userId.toString() },
       {

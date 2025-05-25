@@ -106,9 +106,9 @@ console.log("🔁 subscriptionId:", session.subscription);
         }
 
         const saved = await MediaSubscription.findOneAndUpdate(
-          { userId },
+          { userId: userId.toString() },
           {
-            userId,
+            userId: userId.toString(),
             stripeCustomerId: subscription.customer,
             stripeSubscriptionId: subscription.id,
             status: subscription.status,
@@ -143,7 +143,7 @@ console.log("🔁 subscriptionId:", session.subscription);
         const userId = user._id.toString();
 
         const updated = await MediaSubscription.findOneAndUpdate(
-          { userId },
+          { userId: userId.toString() },
           { status: subscription.status },
           { new: true }
         );
