@@ -1,4 +1,3 @@
-
 import Stripe from "stripe";
 import connectToDB from "@/database";
 import MediaSubscription from "@/models/MediaSubscription";
@@ -9,7 +8,7 @@ import {
 
 export const config = {
   api: {
-    bodyParser: false, // Required for raw body
+    bodyParser: false,
   },
 };
 
@@ -21,7 +20,6 @@ export async function POST(req) {
   const sig = req.headers.get("stripe-signature");
 
   let event;
-
   try {
     event = stripe.webhooks.constructEvent(
       rawBody,
@@ -41,9 +39,9 @@ export async function POST(req) {
     case "customer.subscription.resumed":
     case "customer.subscription.pending_update_applied": {
       const subscription = event.data.object;
-
       try {
         const user = await fetchUserByStripeCustomerId(subscription.customer);
+        const userId = user._id.toString();
 
         let invoice = null;
         if (subscription.latest_invoice) {
@@ -51,9 +49,9 @@ export async function POST(req) {
         }
 
         const saved = await MediaSubscription.findOneAndUpdate(
-          { userId: user._id },
+          { userId },
           {
-            userId: user._id,
+            userId,
             stripeCustomerId: subscription.customer,
             stripeSubscriptionId: subscription.id,
             status: subscription.status,
@@ -76,7 +74,6 @@ export async function POST(req) {
       } catch (err) {
         console.error("❌ Error updating subscription:", err.message);
       }
-
       break;
     }
 
@@ -84,12 +81,12 @@ export async function POST(req) {
     case "customer.subscription.paused":
     case "customer.subscription.pending_update_expired": {
       const subscription = event.data.object;
-
       try {
         const user = await fetchUserByStripeCustomerId(subscription.customer);
+        const userId = user._id.toString();
 
         const updated = await MediaSubscription.findOneAndUpdate(
-          { userId: user._id },
+          { userId },
           { status: subscription.status },
           { new: true }
         );
@@ -99,64 +96,58 @@ export async function POST(req) {
       } catch (err) {
         console.error("❌ Error handling subscription deletion/pausing:", err.message);
       }
-
       break;
     }
 
-case "checkout.session.completed": {
-  const session = event.data.object;
-  const userId = session.metadata?.userId;
-  const stripeCustomerId = session.customer;
-  const subscriptionId = session.subscription; // ✅ This gives the real subscription ID
+    case "checkout.session.completed": {
+      const session = event.data.object;
+      const userId = session.metadata?.userId;
+      const stripeCustomerId = session.customer;
+      const subscriptionId = session.subscription;
 
-  if (!userId || !stripeCustomerId || !subscriptionId) {
-    console.error("❌ Missing required fields in session");
-    break;
-  }
+      if (!userId || !stripeCustomerId || !subscriptionId) {
+        console.error("❌ Missing required fields in session");
+        break;
+      }
 
-  try {
-    // Link Stripe customer ID to the user
-    await linkCustomerIdToUser(userId, stripeCustomerId);
-    console.log(`✅ Linked user ${userId} with Stripe customer ${stripeCustomerId}`);
+      try {
+        await linkCustomerIdToUser(userId, stripeCustomerId);
+        console.log(`✅ Linked user ${userId} with Stripe customer ${stripeCustomerId}`);
 
-    // Fetch full subscription from Stripe
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
-    // Also get the invoice if available
-    let invoice = null;
-    if (subscription.latest_invoice) {
-      invoice = await stripe.invoices.retrieve(subscription.latest_invoice);
+        let invoice = null;
+        if (subscription.latest_invoice) {
+          invoice = await stripe.invoices.retrieve(subscription.latest_invoice);
+        }
+
+        const saved = await MediaSubscription.findOneAndUpdate(
+          { userId },
+          {
+            userId,
+            stripeCustomerId,
+            stripeSubscriptionId: subscription.id,
+            status: subscription.status,
+            startDate: new Date(subscription.start_date * 1000),
+            endDate: new Date(subscription.current_period_end * 1000),
+            planName: mapPriceIdToPlan(subscription.items.data[0].price.id),
+            billingCycle: mapPriceIdToCycle(subscription.items.data[0].price.id),
+            amountTotal: invoice?.amount_paid || null,
+            currency: invoice?.currency || null,
+            latestInvoice: invoice?.id || null,
+            paymentStatus: invoice?.status || null,
+            hostedInvoiceUrl: invoice?.hosted_invoice_url || null,
+            metadata: subscription.metadata || {},
+          },
+          { upsert: true, new: true }
+        );
+
+        console.log("📦 Subscription updated:", saved);
+      } catch (err) {
+        console.error("❌ Error handling checkout.session.completed:", err.message);
+      }
+      break;
     }
-
-    // Save full subscription info in MongoDB
-    const saved = await MediaSubscription.findOneAndUpdate(
-      { userId },
-      {
-        userId,
-        stripeCustomerId,
-        stripeSubscriptionId: subscription.id,
-        status: subscription.status,
-        startDate: new Date(subscription.start_date * 1000),
-        endDate: new Date(subscription.current_period_end * 1000),
-        planName: mapPriceIdToPlan(subscription.items.data[0].price.id),
-        billingCycle: mapPriceIdToCycle(subscription.items.data[0].price.id),
-        amountTotal: invoice?.amount_paid || null,
-        currency: invoice?.currency || null,
-        latestInvoice: invoice?.id || null,
-        paymentStatus: invoice?.status || null,
-        hostedInvoiceUrl: invoice?.hosted_invoice_url || null,
-        metadata: subscription.metadata || {},
-      },
-      { upsert: true, new: true }
-    );
-
-    console.log("📦 Subscription updated:", saved);
-  } catch (err) {
-    console.error("❌ Error handling checkout.session.completed:", err.message);
-  }
-
-  break;
-}
 
     case "invoice.payment_succeeded":
       console.log("✅ Invoice payment succeeded");
@@ -190,7 +181,6 @@ case "checkout.session.completed": {
   return new Response(JSON.stringify({ received: true }), { status: 200 });
 }
 
-// Helpers
 function mapPriceIdToPlan(priceId) {
   switch (priceId) {
     case process.env.Price_Free_Monthly:

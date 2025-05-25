@@ -1,5 +1,3 @@
-// File: /src/app/api/subscription/save-subscription/route.js
-
 import { NextResponse } from "next/server";
 import connectToDB from "@/database";
 import MediaSubscription from "@/models/MediaSubscription";
@@ -10,7 +8,7 @@ export async function POST(req) {
 
     const body = await req.json();
     const {
-      userId, // ✅ Changed from uid to userId
+      userId,
       planName,
       billingCycle = "monthly",
       stripeCustomerId,
@@ -34,9 +32,9 @@ export async function POST(req) {
     }
 
     const updated = await MediaSubscription.findOneAndUpdate(
-      { userId },
+      { userId: userId.toString() },
       {
-        userId,
+        userId: userId.toString(),
         planName,
         billingCycle,
         stripeCustomerId,
@@ -54,7 +52,11 @@ export async function POST(req) {
       { upsert: true, new: true }
     );
 
-    return NextResponse.json({ success: true, message: "Subscription saved", data: updated });
+    return NextResponse.json({
+      success: true,
+      message: "Subscription saved",
+      data: updated,
+    });
   } catch (err) {
     console.error("❌ Error saving subscription:", err);
     return NextResponse.json(

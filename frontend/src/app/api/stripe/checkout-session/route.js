@@ -12,6 +12,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // ✅ Create a new customer or reuse one on the frontend via metadata link
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
@@ -21,9 +22,8 @@ export async function POST(req) {
           quantity: 1,
         },
       ],
-      
       metadata: {
-        userId,
+        userId: userId.toString(), // ✅ Ensure it's stored as a string
         planName,
         billingCycle,
       },
