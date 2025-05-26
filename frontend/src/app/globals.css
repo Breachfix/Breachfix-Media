@@ -17,6 +17,7 @@
   --font-work-sans: 'Work Sans', sans-serif;
 }
 
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1.2fr));
@@ -39,7 +40,13 @@
   font-size: 2em;
   font-weight: 400;
 }
-
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 .section-dowload {
   padding: 70px 45px;
 }
