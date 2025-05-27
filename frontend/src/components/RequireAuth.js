@@ -11,15 +11,14 @@ export default function RequireAuth({ children }) {
   const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   useEffect(() => {
-    const checkAuthAndSubscription = async () => {
+    const checkAccess = async () => {
       if (authLoading) return;
 
       const path = window.location.pathname;
+      const isPublic = ["/subscribe", "/subscribe/success", "/debug/finalize-subscription"].includes(path);
 
-      // Not logged in
       if (!user?.id) {
-        const currentPath = path + window.location.search;
-        sessionStorage.setItem("redirectAfterLogin", currentPath);
+        sessionStorage.setItem("redirectAfterLogin", path + window.location.search);
         router.replace("/auth/login");
         return;
       }
@@ -28,34 +27,27 @@ export default function RequireAuth({ children }) {
         const subscription = await getUserSubscription(user.id);
         const isActive = subscription?.isActive;
 
-        const allowedWithoutSub = [
-          "/subscribe",
-          "/subscribe/success",
-          "/debug/finalize-subscription",
-        ];
-
-        const isAllowed = allowedWithoutSub.includes(path);
-
-        // If they are already subscribed but still on subscribe page — redirect to /browse
-        if (isActive && isAllowed) {
-          router.replace("/browse");
-          return;
-        }
-
-        // If NOT subscribed and trying to access a protected page — redirect to /subscribe
-        if (!isActive && !isAllowed) {
+        if (!isActive && !isPublic) {
+          // ❌ Not subscribed — go to subscription page
           router.replace("/subscribe");
           return;
         }
 
+        if (isActive && isPublic) {
+          // ✅ Subscribed — instead of redirecting to /browse, go to /account-manager
+          router.replace("/manage-accounts");
+          return;
+        }
+
+        // ✅ All good, allow rendering
         setHasCheckedAuth(true);
       } catch (err) {
         console.error("❌ Subscription check failed:", err);
-        router.replace("/subscribe"); // fallback
+        router.replace("/subscribe");
       }
     };
 
-    checkAuthAndSubscription();
+    checkAccess();
   }, [authLoading, user]);
 
   if (!hasCheckedAuth || authLoading) {

@@ -181,7 +181,7 @@ export default function MediaItem({
         <Image
           src={imageUrl}
           alt={media?.title || "Media"}
-          layout="fill"
+          fill
           className="rounded sm object-cover md:rounded hover:rounded-sm"
           onClick={() => {
             const type = detectMediaType(media);

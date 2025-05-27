@@ -31,12 +31,12 @@ export default function Browse() {
   useEffect(() => {
     async function getAllMedias() {
       const trendingTvShows = await getTrendingMedias("tv");
-      const popularTvShows = await getPopularMedias("tv");
-      const topratedTvShows = await getTopratedMedias("tv");
+      // const popularTvShows = await getPopularMedias("tv");
+      // const topratedTvShows = await getTopratedMedias("tv");
 
       const trendingMovieShows = await getTrendingMedias("movie");
-      const popularMovieShows = await getPopularMedias("movie");
-      const topratedMovieShows = await getTopratedMedias("movie");
+      // const popularMovieShows = await getPopularMedias("movie");
+      // const topratedMovieShows = await getTopratedMedias("movie");
       const allFavorites = await getAllfavorites(
         user?.id,
         loggedInAccount?._id

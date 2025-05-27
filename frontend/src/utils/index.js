@@ -85,39 +85,39 @@ export const getTrendingMedias = async (type) => {
   }
 };
 
-export const getTopratedMedias = async (type) => {
-  try {
-    const res = await fetch(
-      `${BASE_URL}/${type}/top_rated?api_key=${API_KEY}&language=en-US`,
-      {
-        method: "GET",
-      }
-    );
+// export const getTopratedMedias = async (type) => {
+//   try {
+//     const res = await fetch(
+//       `${BASE_URL}/${type}/top_rated?api_key=${API_KEY}&language=en-US`,
+//       {
+//         method: "GET",
+//       }
+//     );
 
-    const data = await res.json();
+//     const data = await res.json();
 
-    return data && data.results;
-  } catch (e) {
-    console.log(e);
-  }
-};
+//     return data && data.results;
+//   } catch (e) {
+//     console.log(e);
+//   }
+// };
 
-export const getPopularMedias = async (type) => {
-  try {
-    const res = await fetch(
-      `${BASE_URL}/${type}/popular?api_key=${API_KEY}&language=en-US`,
-      {
-        method: "GET",
-      }
-    );
+// export const getPopularMedias = async (type) => {
+//   try {
+//     const res = await fetch(
+//       `${BASE_URL}/${type}/popular?api_key=${API_KEY}&language=en-US`,
+//       {
+//         method: "GET",
+//       }
+//     );
 
-    const data = await res.json();
+//     const data = await res.json();
 
-    return data && data.results;
-  } catch (e) {
-    console.log(e);
-  }
-};
+//     return data && data.results;
+//   } catch (e) {
+//     console.log(e);
+//   }
+// };
 
 /**
  * Fetches media by genre and filters it by type (movie, tv, episode),
