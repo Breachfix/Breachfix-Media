@@ -374,6 +374,7 @@ export const fetchWatchContent = async (type, id) => {
       views: content.views,
       videoUrl, // ✅ final HLS or fallback
       HLS,
+      transcodedVideo:content.transcodedVideo|| '',
       thumbnailUrl: content.thumbnailUrl || '',
       trailerUrl: content.trailerUrl || '',
       posterUrl: content.posterUrl || '',

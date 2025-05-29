@@ -20,9 +20,9 @@ export default function Watch() {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
 
+  const { pageLoader, setPageLoader, subscriptionPlan } = useContext(GlobalContext);
   const params = useParams();
   const router = useRouter();
-  const { pageLoader, setPageLoader, subscriptionPlan } = useContext(GlobalContext);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -30,104 +30,118 @@ export default function Watch() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
-    async function getMediaDetails() {
+    async function getContent() {
       try {
         const type = params.id?.[0];
         const id = params.id?.[1];
-
-        if (!type || !id) {
-          setError("Missing content type or ID.");
-          return;
-        }
+        if (!type || !id) return setError("Missing type or ID");
 
         const content = await fetchWatchContent(type, id);
         setMediaDetails(content);
 
-        const allowedQuality = {
+        const allowed = {
           Basic: "480p",
           Standard: "720p",
           Premium: "1080p",
         }[subscriptionPlan] || "480p";
 
-        const fallbackUrl =
-          content.HLS?.[allowedQuality] ||
-          content.HLS?.["480p"] ||
-          content.HLS?.["720p"] ||
-          content.HLS?.["1080p"] ||
-          content.transcodedVideo?.hlsUrl ||
-          content.transcodedVideo ||
-          content.videoUrl ||
-          content.trailerUrl;
+        let primaryUrl = null;
 
-        if (!fallbackUrl) {
-          setError("Video not available.");
+        if (type === "tvShow") {
+          const firstEpisode = content.seasons?.[0]?.episodes?.[0];
+          primaryUrl =
+            firstEpisode?.HLS?.[allowed] ||
+            firstEpisode?.HLS?.["480p"] ||
+            firstEpisode?.HLS?.["720p"] ||
+            firstEpisode?.HLS?.["1080p"] ||
+            firstEpisode?.videoUrl ||
+            content.previewVideoUrl ||
+            content.trailerUrl;
         } else {
-          setSelectedQuality(allowedQuality);
-          setVideoUrl(fallbackUrl);
+          primaryUrl =
+            content.HLS?.[allowed] ||
+            content.HLS?.["480p"] ||
+            content.HLS?.["720p"] ||
+            content.HLS?.["1080p"] ||
+            content.transcodedVideo ||
+            content.videoUrl ||
+            content.trailerUrl;
+        }
+
+        if (!primaryUrl) {
+          setError("No playable video found.");
+        } else {
+          setSelectedQuality(allowed);
+          setVideoUrl(primaryUrl);
         }
 
         setPageLoader(false);
-      } catch (err) {
-        console.error("❌ Failed to load content:", err);
-        setError("Failed to load video.");
+      } catch (e) {
+        console.error("❌ Failed to load content", e);
+        setError("Error loading content.");
         setPageLoader(false);
       }
     }
 
-    getMediaDetails();
-  }, [params]);
+    getContent();
+  }, [params, subscriptionPlan, setPageLoader]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoUrl) return;
 
     let hls;
+    const currentTime = video.currentTime || 0;
+
+    const playVideo = () => {
+      video.currentTime = currentTime;
+      video.play().catch((err) => {
+        console.warn("⚠️ Autoplay failed:", err);
+      });
+    };
 
     if (Hls.isSupported()) {
-      hls = new Hls();
+      hls = new Hls({ startPosition: currentTime });
       hls.loadSource(videoUrl);
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        const playAttempt = () => video.play().catch(() => {});
-        video.addEventListener("click", playAttempt);
-        setTimeout(playAttempt, 100);
+        video.addEventListener("canplay", playVideo, { once: true });
       });
 
-      hls.on(Hls.Events.ERROR, (event, data) => {
-  try {
-    console.error("🚨 HLS.js error", JSON.stringify(data, null, 2));
-  } catch (e) {
-    console.error("🚨 HLS.js error: Could not stringify error object", data);
-  }
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        console.error("🚨 HLS fatal error:", JSON.stringify(data, null, 2));
 
-  if (data?.fatal) {
-    switch (data.type) {
-      case Hls.ErrorTypes.NETWORK_ERROR:
-        console.warn("📡 Network error — trying to recover...");
-        hls.startLoad();
-        break;
-      case Hls.ErrorTypes.MEDIA_ERROR:
-        console.warn("🎞 Media error — attempting to recover...");
-        hls.recoverMediaError();
-        break;
-      default:
-        console.error("❌ Fatal error — destroying player");
-        hls.destroy();
-        break;
-    }
-  }
-});
+        if (!data) {
+          setError("Unknown video error occurred.");
+        } else if (data.details === "manifestLoadError") {
+          setError("The video manifest could not be loaded. Please try again later.");
+        } else if (data.details === "levelLoadError") {
+          setError("Video stream is currently unavailable or corrupted.");
+        }
 
-      
+        if (data?.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              hls.destroy();
+              break;
+          }
+        }
+      });
 
       hlsRef.current = hls;
     } else if (video.canPlayType("application/vnd.apple.mpegURL")) {
       video.src = videoUrl;
-      video.addEventListener("canplay", () => video.play().catch(() => {}));
+      video.addEventListener("canplay", playVideo, { once: true });
     }
 
     return () => {
@@ -135,20 +149,20 @@ export default function Watch() {
     };
   }, [videoUrl]);
 
-  const handleQualityChange = (q) => {
-    if (mediaDetails?.HLS?.[q]) {
-      const currentTime = videoRef.current?.currentTime || 0;
-      if (hlsRef.current) hlsRef.current.destroy();
-      setVideoUrl(mediaDetails.HLS[q]);
-      setSelectedQuality(q);
+  const handleQualityChange = (quality) => {
+    const time = videoRef.current?.currentTime || 0;
+
+    if (hlsRef.current) hlsRef.current.destroy();
+    setSelectedQuality(quality);
+    setVideoUrl(mediaDetails.HLS?.[quality] || videoUrl);
+
+    const resume = () => {
       const video = videoRef.current;
-      const onCanPlay = () => {
-        video.currentTime = currentTime;
-        video.play().catch(() => {});
-        video.removeEventListener("canplay", onCanPlay);
-      };
-      video.addEventListener("canplay", onCanPlay);
-    }
+      video.currentTime = time;
+      video.play().catch(() => {});
+      video.removeEventListener("canplay", resume);
+    };
+    videoRef.current?.addEventListener("canplay", resume);
   };
 
   if (pageLoader || !mediaDetails) return <CircleLoader />;
@@ -156,43 +170,45 @@ export default function Watch() {
   return (
     <RequireAuth>
       <motion.div
+        className="relative w-full h-screen bg-black"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="relative w-full h-screen bg-black"
+        transition={{ duration: 0.6 }}
       >
-        <div className="absolute z-10 top-0 left-0 w-full flex flex-wrap justify-between items-center px-4 py-3 bg-gradient-to-b from-black/80 to-transparent text-white text-sm md:text-base">
+        <div className="absolute z-10 top-0 left-0 w-full px-4 py-3 bg-gradient-to-b from-black/90 to-transparent flex justify-between items-center text-white">
           <button
             onClick={() => router.push("/browse")}
-            className="flex items-center gap-2 text-white hover:text-red-500"
+            className="flex items-center gap-2 hover:text-red-500"
           >
             <ArrowLeft size={20} />
-            <span className="font-medium hidden sm:inline">Back to Browse</span>
+            <span className="hidden sm:inline font-medium">Back</span>
           </button>
-          <span className="truncate text-center w-full sm:w-auto sm:flex-1 text-lg font-semibold">
-            {mediaDetails?.title}
+          <span className="text-lg font-semibold truncate max-w-xs sm:max-w-md md:max-w-xl">
+            {mediaDetails.title}
           </span>
           <select
             value={selectedQuality}
             onChange={(e) => handleQualityChange(e.target.value)}
-            className="bg-black text-white border border-white rounded px-2 py-1 text-sm mt-2 sm:mt-0"
+            className="bg-black text-white border border-white rounded px-2 py-1 text-sm"
           >
-            {Object.keys(mediaDetails?.HLS || {}).map((q) => (
-              <option key={q} value={q}>{q}</option>
+            {Object.keys(mediaDetails.HLS || {}).map((q) => (
+              <option key={q} value={q}>
+                {q}
+              </option>
             ))}
           </select>
         </div>
 
         {error ? (
-          <div className="text-center text-red-500 pt-10">{error}</div>
+          <div className="text-center text-red-500 pt-20">{error}</div>
         ) : (
           <video
             ref={videoRef}
-            className="w-full h-full object-contain cursor-pointer"
             controls
             autoPlay
             playsInline
-            poster={mediaDetails?.posterUrl || mediaDetails?.thumbnailUrl}
+            poster={mediaDetails.posterUrl || mediaDetails.thumbnailUrl}
+            className="w-full h-full object-contain"
           />
         )}
       </motion.div>
