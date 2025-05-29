@@ -24,11 +24,13 @@ export default function TVShowDetailPage() {
     favorites,
   } = useContext(GlobalContext);
   const { user } = useAuth();
+  const API  = process.env.NEXT_PUBLIC_API_BASE_URL;  
+  const API_URL= `${API}/api/v1`; 
 
   useEffect(() => {
     async function fetchTvShow() {
       try {
-        const res = await axios.get(`http://localhost:7001/api/v1/tvShows/${id}`);
+        const res = await axios.get(`${API_URL}/tvShows/${id}`);
         const favoriteIds = favorites.map((fav) => fav.movieID);
 
         res.data.seasons.forEach((season) => {

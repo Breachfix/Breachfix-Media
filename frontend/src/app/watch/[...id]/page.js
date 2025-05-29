@@ -150,20 +150,28 @@ export default function Watch() {
   }, [videoUrl]);
 
   const handleQualityChange = (quality) => {
-    const time = videoRef.current?.currentTime || 0;
+  const video = videoRef.current;
+  if (!video) return;
 
-    if (hlsRef.current) hlsRef.current.destroy();
-    setSelectedQuality(quality);
-    setVideoUrl(mediaDetails.HLS?.[quality] || videoUrl);
+  const time = video.currentTime || 0;
 
-    const resume = () => {
-      const video = videoRef.current;
-      video.currentTime = time;
-      video.play().catch(() => {});
-      video.removeEventListener("canplay", resume);
-    };
-    videoRef.current?.addEventListener("canplay", resume);
+  if (hlsRef.current) hlsRef.current.destroy();
+
+  setSelectedQuality(quality);
+
+  const newUrl = mediaDetails.HLS?.[quality] || videoUrl;
+
+  // Wait for the new URL to set, then resume from current time
+  setVideoUrl(newUrl);
+
+  const tryResume = () => {
+    video.currentTime = time;
+    video.play().catch(() => {});
+    video.removeEventListener("canplay", tryResume);
   };
+
+  video.addEventListener("canplay", tryResume);
+};
 
   if (pageLoader || !mediaDetails) return <CircleLoader />;
 
