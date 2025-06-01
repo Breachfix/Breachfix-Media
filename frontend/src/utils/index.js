@@ -7,6 +7,9 @@ const API_URL= `${API}/api/v1`; // Backend URL for the API
 const api = axios.create({
   baseURL: `${API_URL}/movies`, // Base URL for movies
 });
+const episode = axios.create({
+  baseURL: `${API_URL}/episodes`, // Base URL for movies
+});
 
 const watch = axios.create({
   baseURL: `${API_URL}/watch`, // Base URL for movies
@@ -331,23 +334,43 @@ export const fetchWatchContent = async (type, id) => {
     const content = response.data;
     let videoUrl = null;
     let HLS = {};
+    let nextEpisodeId = null;
+    let prevEpisodeId = null;
 
     if (type === "tvShow") {
+      const firstEp = content.seasons?.[0]?.episodes?.[0];
       videoUrl =
         content.previewVideoUrl ||
-        content.seasons?.[0]?.episodes?.[0]?.HLS?.["1080p"] ||
-        content.seasons?.[0]?.episodes?.[0]?.videoUrl || null;
-      HLS = content.seasons?.[0]?.episodes?.[0]?.HLS || {};
-    } else if (type === "movie") {
+        firstEp?.HLS?.["1080p"] ||
+        firstEp?.videoUrl ||
+        null;
+      HLS = firstEp?.HLS || {};
+    } 
+    
+    else if (type === "movie") {
       videoUrl = content.HLS?.master || content.videoUrl || null;
       HLS = content.HLS || {};
-    } else if (type === "episode") {
+    } 
+    
+    else if (type === "episode") {
       videoUrl =
         content.HLS?.["1080p"] ||
         content.HLS?.["720p"] ||
         content.HLS?.["480p"] ||
         content.videoUrl || null;
       HLS = content.HLS || {};
+
+      // ✅ Only attempt to flatten if seasons is a valid array
+      const allEpisodes = Array.isArray(content.seasons)
+        ? content.seasons.flatMap(season => season.episodes || [])
+        : [];
+
+      const currentIndex = allEpisodes.findIndex(ep => ep.episodeId === id);
+
+      if (currentIndex !== -1) {
+        prevEpisodeId = allEpisodes[currentIndex - 1]?.episodeId || null;
+        nextEpisodeId = allEpisodes[currentIndex + 1]?.episodeId || null;
+      }
     }
 
     return {
@@ -367,12 +390,52 @@ export const fetchWatchContent = async (type, id) => {
       posterUrl: content.posterUrl || '',
       pricing: content.pricing || null,
       seasons: content.seasons || [],
+      nextEpisodeId,
+      prevEpisodeId,
     };
   } catch (error) {
     console.error("❌ Error fetching watch content:", error);
     throw error;
   }
 };
+
+export const getEpisodeContextById = async (episodeId) => {
+  try {
+    const response = await episode.get(`/${episodeId}/context`);
+    return response.data;
+  } catch (error) {
+    console.error("❌ Failed to fetch episode context:", error);
+    return {
+      success: false,
+      message: "Error fetching episode context",
+      episode: null,
+      nextEpisodeId: null,
+      prevEpisodeId: null,
+    };
+  }
+};
+
+export const getNextPrevMediaByGenre = async (type, genre, currentId) => {
+  const mediaList = await getTVorMoviesByGenre(type, genre);
+  const filteredList = mediaList.filter((item) => item.id !== currentId);
+
+  if (filteredList.length === 0) return { next: null, prev: null };
+
+  const currentIndex = filteredList.findIndex((m) => m.id === currentId);
+
+  // Fallback: if not found, pick random next/prev
+  const next = filteredList[currentIndex + 1] || filteredList[0];
+  const prev =
+    currentIndex > 0 ? filteredList[currentIndex - 1] : filteredList[filteredList.length - 1];
+
+  return {
+    next: next?.id || null,
+    prev: prev?.id || null,
+  };
+};
+
+
+
 
 
 

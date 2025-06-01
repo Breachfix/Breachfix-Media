@@ -1,4 +1,3 @@
-// src/app/watch/page.jsx (WatchPage)
 "use client";
 
 import { useEffect, useState, useContext } from "react";
@@ -16,28 +15,79 @@ import EpisodePlayer from "@/components/players/EpisodePlayer";
 export default function WatchPage() {
   const [media, setMedia] = useState(null);
   const [error, setError] = useState(null);
-  const { setPageLoader, subscriptionPlan } = useContext(GlobalContext);
+  const { setPageLoader } = useContext(GlobalContext);
   const params = useParams();
   const router = useRouter();
+
+  const [showHeader, setShowHeader] = useState(true);
+  const [showGenres, setShowGenres] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
         setPageLoader(true);
+
         const type = params.id?.[0];
         const id = params.id?.[1];
         if (!type || !id) throw new Error("Missing type or ID");
 
         const content = await fetchWatchContent(type, id);
-        setMedia({ ...content, type });
+
+        setMedia({
+          ...content,
+          type,
+          nextEpisodeId: content.nextEpisodeId || null,
+          prevEpisodeId: content.prevEpisodeId || null,
+        });
       } catch (e) {
         setError(e.message || "Unknown error");
       } finally {
         setPageLoader(false);
       }
     };
+
     load();
   }, [params]);
+
+  useEffect(() => {
+    // Hide header and genres after 5 seconds
+    const timeout = setTimeout(() => {
+      setShowHeader(false);
+      setShowGenres(true);
+
+      // Show genres again at 60s (midway preview behavior)
+      const genreTimeout = setTimeout(() => {
+        setShowGenres(false);
+      }, 8000);
+
+      return () => clearTimeout(genreTimeout);
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [media]);
+
+  useEffect(() => {
+    const showUI = () => {
+      setShowHeader(true);
+      setShowGenres(true);
+
+      // Hide again after 3 seconds
+      const timeout = setTimeout(() => {
+        setShowHeader(false);
+        setShowGenres(false);
+      }, 3000);
+
+      return () => clearTimeout(timeout);
+    };
+
+    window.addEventListener("mousemove", showUI);
+    window.addEventListener("touchstart", showUI);
+
+    return () => {
+      window.removeEventListener("mousemove", showUI);
+      window.removeEventListener("touchstart", showUI);
+    };
+  }, []);
 
   if (!media) return <CircleLoader />;
 
@@ -46,22 +96,48 @@ export default function WatchPage() {
     return media.videoUrl || media.transcodedVideo || media.trailerUrl;
   };
 
+  const renderGenres = () => {
+    if (!media.genres || media.genres.length === 0 || !showGenres) return null;
+    return (
+      <div className="absolute top-16 left-0 w-full px-4 z-10 flex gap-2 flex-wrap text-sm text-gray-300 transition-opacity duration-700 ease-in-out">
+        {media.genres.map((genre) => (
+          <span key={genre} className="bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
+            {genre}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <RequireAuth>
       <motion.div className="relative w-full h-screen bg-black text-white">
-        <div className="absolute top-0 left-0 w-full px-4 py-3 bg-gradient-to-b from-black/90 to-transparent flex justify-between items-center z-10">
-          <button onClick={() => router.push("/browse")} className="flex items-center gap-2">
-            <ArrowLeft size={20} /> <span className="hidden sm:inline">Back</span>
-          </button>
-          <span className="text-lg font-semibold truncate">{media.title}</span>
-        </div>
+        {showHeader && (
+          <div className="absolute top-0 left-0 w-full px-4 py-3 bg-gradient-to-b from-black/90 to-transparent flex justify-between items-center z-10 transition-opacity duration-700 ease-in-out">
+            <button onClick={() => router.push("/browse")} className="flex items-center gap-2">
+              <ArrowLeft size={20} /> <span className="hidden sm:inline">Back</span>
+            </button>
+            <span className="text-lg font-semibold truncate">{media.title}</span>
+          </div>
+        )}
+
+        {renderGenres()}
 
         {error ? (
           <div className="text-red-500 text-center pt-20">{error}</div>
         ) : media.type === "movie" ? (
           <MoviePlayer hlsUrl={getPlayableUrl()} poster={media.posterUrl || media.thumbnailUrl} />
         ) : (
-          <EpisodePlayer url={getPlayableUrl()} poster={media.posterUrl || media.thumbnailUrl} />
+          <EpisodePlayer
+            episodeId={media.id || media._id}
+            url={getPlayableUrl()}
+            poster={media.posterUrl || media.thumbnailUrl}
+            nextEpisodeId={media.nextEpisodeId}
+            prevEpisodeId={media.prevEpisodeId}
+            tvShowId={media.tvShowId}
+            seasonNumber={media.seasonNumber}
+            episodeNumber={media.episodeNumber}
+          />
         )}
       </motion.div>
     </RequireAuth>

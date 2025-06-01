@@ -88,11 +88,16 @@ export default function TVShowDetailPage() {
       <div className="p-4 space-y-6 text-white">
         <div className="relative w-full h-[60vh] rounded overflow-hidden shadow-lg">
           <Image
-            src={trailerImage}
-            alt="TV Show Banner"
-            fill
-            className="object-cover rounded"
-          />
+  src={
+    firstEpisode.thumbnail_url_s3 ||
+    firstEpisode.thumbnail_url ||
+    "/images/fallback.jpg"
+  }
+  alt={firstEpisode.title}
+  fill
+  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+  className="object-cover rounded"
+/>
         </div>
 
         <div>

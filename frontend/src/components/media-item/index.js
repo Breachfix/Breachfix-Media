@@ -182,6 +182,7 @@ export default function MediaItem({
           src={imageUrl}
           alt={media?.title || "Media"}
           fill
+          sizes="(max-width: 768px) 100vw, 50vw"
           className="rounded sm object-cover md:rounded hover:rounded-sm"
           onClick={() => {
             const type = detectMediaType(media);
