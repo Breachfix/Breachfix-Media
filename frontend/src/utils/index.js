@@ -325,16 +325,10 @@ export const fetchHeroContent = async () => {
  */
 export const fetchWatchContent = async (type, id) => {
   try {
-    console.log(`🎬 Fetching watch content: /watch/${type}/${id}`);
     const response = await watch.get(`/${type}/${id}`);
-
-    if (!response.data.success) {
-      throw new Error("⚠️ Failed to retrieve video details");
-    }
+    if (!response.data.success) throw new Error("⚠️ Failed to retrieve video details");
 
     const content = response.data;
-
-    // Determine videoUrl and HLS source depending on content type
     let videoUrl = null;
     let HLS = {};
 
@@ -342,25 +336,18 @@ export const fetchWatchContent = async (type, id) => {
       videoUrl =
         content.previewVideoUrl ||
         content.seasons?.[0]?.episodes?.[0]?.HLS?.["1080p"] ||
-        content.seasons?.[0]?.episodes?.[0]?.HLS?.["720p"] ||
-        content.seasons?.[0]?.episodes?.[0]?.HLS?.["480p"] ||
-        content.seasons?.[0]?.episodes?.[0]?.videoUrl ||
-        null;
-
+        content.seasons?.[0]?.episodes?.[0]?.videoUrl || null;
       HLS = content.seasons?.[0]?.episodes?.[0]?.HLS || {};
-    } else {
+    } else if (type === "movie") {
+      videoUrl = content.HLS?.master || content.videoUrl || null;
+      HLS = content.HLS || {};
+    } else if (type === "episode") {
       videoUrl =
         content.HLS?.["1080p"] ||
         content.HLS?.["720p"] ||
         content.HLS?.["480p"] ||
-        content.videoUrl ||
-        null;
-
+        content.videoUrl || null;
       HLS = content.HLS || {};
-    }
-
-    if (!videoUrl) {
-      console.warn("⚠️ No playable video source found.");
     }
 
     return {
@@ -372,19 +359,20 @@ export const fetchWatchContent = async (type, id) => {
       isFree: content.isFree,
       rating: content.rating,
       views: content.views,
-      videoUrl, // ✅ final HLS or fallback
+      videoUrl,
       HLS,
-      transcodedVideo:content.transcodedVideo|| '',
+      transcodedVideo: content.transcodedVideo || '',
       thumbnailUrl: content.thumbnailUrl || '',
       trailerUrl: content.trailerUrl || '',
       posterUrl: content.posterUrl || '',
       pricing: content.pricing || null,
-      seasons: content.seasons || [], // for tvShow browsing
+      seasons: content.seasons || [],
     };
   } catch (error) {
     console.error("❌ Error fetching watch content:", error);
     throw error;
   }
 };
+
 
 
