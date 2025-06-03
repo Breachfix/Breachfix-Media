@@ -159,15 +159,21 @@ function detectMediaType(item) {
 
   const isValidImage = (url) => typeof url === "string" && url.startsWith("http");
 
-  const imageUrl = isValidImage(media?.posterUrl)
-    ? media.posterUrl
-    : isValidImage(media?.thumbnail_url_s3)
-    ? media.thumbnail_url_s3
-    : isValidImage(media?.thumbnailUrl)
-    ? media.thumbnailUrl
-    : isValidImage(media?.thumbnail_url)
-    ? media.thumbnail_url
-    : "/fallback.jpg";
+  function getThumbnailFallback(media) {
+  if (isValidImage(media?.video_url_s3)) {
+    const base = media.video_url_s3.split("/").slice(0, -1).join("/");
+    return `${base}/thumbnail.jpg`; // assumes S3 has a thumbnail with same name
+  }
+  return "/fallback.jpg";
+}
+
+const imageUrl =
+  isValidImage(media?.thumbnail_url_s3) ? media.thumbnail_url_s3 :
+  isValidImage(media?.thumbnailUrl) ? media.thumbnailUrl :
+  isValidImage(media?.posterUrl) ? media.posterUrl :
+  isValidImage(media?.thumbnail_url) ? media.thumbnail_url :
+  isValidImage(media?.backdrop_path) ? media.backdrop_path :
+  getThumbnailFallback(media);
 
   const type = detectMediaType(media);
   const idToUse = listView ? media?.movieID : media?.id;
