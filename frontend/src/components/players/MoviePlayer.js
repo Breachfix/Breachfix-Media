@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { SkipBack, SkipForward } from "lucide-react";
+import { getNextPrevMediaByGenre } from "@/utils"; // Ensure this import is correct
+import WatchProgressHandler from "@/components/watch-progress-handle";
 
 export default function MoviePlayer({
   hlsUrl,
@@ -23,6 +25,17 @@ export default function MoviePlayer({
 
   const [nextId, setNextId] = useState(propNextMovieId || null);
   const [prevId, setPrevId] = useState(propPrevMovieId || null);
+  const [uid, setUid] = useState(null);
+  const [accountId, setAccountId] = useState(null);
+
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    const acc = JSON.parse(sessionStorage.getItem("loggedInAccount"));
+    if (userId && acc?._id) {
+      setUid(userId);
+      setAccountId(acc._id);
+    }
+  }, []);
 
   // 🧠 Load and play HLS video
   useEffect(() => {
@@ -111,6 +124,7 @@ export default function MoviePlayer({
 
   return (
     <div className="relative w-full h-screen bg-black text-white">
+     
       {/* 🎥 Video */}
       <video
         ref={videoRef}
@@ -147,6 +161,17 @@ export default function MoviePlayer({
           ⏭ Skip Intro
         </button>
       )}
+         {/* Watch Progress Handler
+      {uid && accountId && (
+        <WatchProgressHandler
+  uid={uid}
+  accountId={accountId}
+  mediaId={movie?._id}
+  type="movie"
+  videoRef={videoRef}
+  onAutoSkipIntro={() => setCanShowSkipIntro(false)} // 👈 optional
+/>
+      )} */}
 
       {/* ⏮⏭ Previous / Next */}
       {hovering && showControls &&  (
@@ -161,7 +186,7 @@ export default function MoviePlayer({
           )}
           {nextId && (
             <button
-              onClick={() => onNavigate(prevId)}
+              onClick={() => onNavigate(nextId)}
               className="flex items-center gap-1 bg-white/10 px-4 py-2 rounded hover:bg-white/20"
             >
               Next <SkipForward size={18} />

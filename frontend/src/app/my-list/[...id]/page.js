@@ -15,7 +15,7 @@ import RequireAuth from "@/components/RequireAuth";
 
 export default function MyList() {
 
-const params = useParams();
+const _params = useParams();
   const {
     favorites,
     setFavorites,
@@ -72,7 +72,7 @@ const params = useParams();
           {favorites && favorites.length > 0 ? (
             favorites.map((item, index) => (
               <MediaItem
-                key={item.id || item.movieID || index}
+                key={`${item.mediaId || item.movieID || item._id || "media"}-${index}`}
                 media={item}
                 listView={true}
               />

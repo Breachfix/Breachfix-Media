@@ -50,7 +50,18 @@ export default function Navbar() {
     {
       id: "my-list",
       title: "My List",
-      path: user?.id && loggedInAccount?._id ? `/my-list/${user.id}/${loggedInAccount._id}` : "/my-list",
+      path:
+        user?.id && loggedInAccount?._id
+          ? `/my-list/${user.id}/${loggedInAccount._id}`
+          : "/my-list",
+    },
+    {
+      id: "continue-watching",
+      title: "Continue Watching",
+      path:
+        user?.id && loggedInAccount?._id
+          ? `/continue-watching/${user.id}/${loggedInAccount._id}`
+          : "#",
     },
   ];
 
@@ -88,24 +99,47 @@ export default function Navbar() {
             width={120}
             height={120}
             alt="Breachfix"
-            className="cursor-pointer object-contain"
+            className="hidden sm:block cursor-pointer object-contain"
             onClick={() => router.push("/browse")}
           />
-          <ul className="hidden md:flex md:space-x-4 cursor-pointer">
-            {menuItems.map((item) => (
-              <li
-                key={item.id}
-                onClick={() => {
-                  setPageLoader(true);
-                  router.push(item.path);
-                  setSearchQuery("");
-                  setShowSearchBar(false);
-                }}
-                className="text-[16px] font-light text-[#e5e5e5] hover:text-[#b3b3b3] transition"
-              >
-                {item.title}
-              </li>
-            ))}
+
+          <div
+            className="block sm:hidden cursor-pointer"
+            onClick={() => router.push("/browse")}
+          >
+            <img
+              src="/android-chrome-192x192.png"
+              width={30}
+              height={30}
+              alt="BR"
+              className="block cursor-pointer object-contain"
+            />
+          </div>
+
+          <ul className="flex space-x-4 cursor-pointer justify-center w-full sm:justify-start sm:w-auto">
+            {menuItems.map((item) => {
+              const isMobileEssential =
+                item.id === "tv" || item.id === "movies" || item.id === "home" || item.id === "my-list";
+              const isDesktop = typeof window !== "undefined" && window.innerWidth >= 640;
+
+              if (isMobileEssential || isDesktop) {
+                return (
+                  <li
+                    key={item.id}
+                    onClick={() => {
+                      setPageLoader(true);
+                      router.push(item.path);
+                      setSearchQuery("");
+                      setShowSearchBar(false);
+                    }}
+                    className="text-[16px] font-light text-[#e5e5e5] hover:text-[#b3b3b3] transition"
+                  >
+                    {item.title}
+                  </li>
+                );
+              }
+              return null;
+            })}
           </ul>
         </div>
 
@@ -122,21 +156,20 @@ export default function Navbar() {
           ) : (
             <AiOutlineSearch
               onClick={() => setShowSearchBar(true)}
-              className="hidden sm:inline sm:w-6 sm:h-6 cursor-pointer"
+              className="w-6 h-6 cursor-pointer"
             />
           )}
 
           <div
-  onClick={() => router.push("/manage-accounts")}
-  className="flex gap-2 items-center cursor-pointer"
->
-  <img
-    src="https://occ-0-2611-3663.1.nflxso.net/dnm/api/v6/K6hjPJd6cR6FpVELC5Pd6ovHRSk/AAAABfNXUMVXGhnCZwPI1SghnGpmUgqS_J-owMff-jig42xPF7vozQS1ge5xTgPTzH7ttfNYQXnsYs4vrMBaadh4E6RTJMVepojWqOXx.png?r=1d4"
-    alt="Current Profile"
-    className="max-w-[30px] rounded object-cover w-[30px] h-[30px]"
-  />
-  <p>{loggedInAccount?.name}</p>
-</div> 
+            onClick={() => router.push("/manage-accounts")}
+            className="flex items-center cursor-pointer"
+          >
+            <img
+              src="https://occ-0-2611-3663.1.nflxso.net/dnm/api/v6/K6hjPJd6cR6FpVELC5Pd6ovHRSk/AAAABfNXUMVXGhnCZwPI1SghnGpmUgqS_J-owMff-jig42xPF7vozQS1ge5xTgPTzH7ttfNYQXnsYs4vrMBaadh4E6RTJMVepojWqOXx.png?r=1d4"
+              alt="Current Profile"
+              className="w-[30px] h-[30px] rounded object-cover"
+            />
+          </div>
         </div>
       </header>
 
@@ -146,7 +179,7 @@ export default function Navbar() {
         <AccountPopup
           accounts={accounts}
           setPageLoader={setPageLoader}
-          signOut={handleLogout} // 🔄 replaced NextAuth signOut
+          signOut={handleLogout}
           loggedInAccount={loggedInAccount}
           setLoggedInAccount={setLoggedInAccount}
         />

@@ -34,7 +34,7 @@ export default function Banner() {
     : "/fallback.jpg";
 
   return (
-    <section className="relative w-screen h-screen overflow-hidden">
+    <section className="relative w-screen h-[65vw] overflow-hidden">
       {/* Fullscreen Background Image */}
       <div className="absolute inset-0 -z-10">
         <Image
@@ -61,16 +61,26 @@ export default function Banner() {
 
         <div className="flex flex-wrap gap-4">
           <button
-            onClick={() => {
-              const path = `/watch/${media.type}/${media.id}`;
-              console.log("▶️ Navigating to:", path);
-              router.push(path);
-            }}
-            className="flex items-center gap-2 bg-white text-black font-semibold rounded px-6 py-2 text-sm md:text-lg hover:opacity-90 transition"
-          >
-            <AiFillPlayCircle className="w-5 h-5 md:w-7 md:h-7" />
-            Play
-          </button>
+  onClick={() => {
+    const { type, id } = media || {};
+    if (!type || !id) return;
+
+    let path = "";
+
+    if (type === "movie") {
+      path = `/watch/movie/${id}`;
+    } else if (type === "episode") {
+      path = `/watch/episode/${id}`;
+    } else if (type === "tv") {
+      path = `/tv/${id}`;
+    }
+    router.push(path);
+  }}
+  className="flex items-center gap-2 bg-white text-black font-semibold rounded px-6 py-2 text-sm md:text-lg hover:opacity-90 transition"
+>
+  <AiFillPlayCircle className="w-5 h-5 md:w-7 md:h-7" />
+  Play
+</button>
 
           <button
             onClick={() => setShowDescription((prev) => !prev)}

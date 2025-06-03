@@ -164,7 +164,7 @@ export default function ManageAccounts() {
   return (
     <RequireAuth>
     <AuthBackground>
-      <div className="min-h-screen flex justify-center items-center px-6 py-16 relative">
+      <div className="min-h-[25vw] flex justify-center items-center px-6 py-16 relative">
         <div className="w-full max-w-4xl bg-black bg-opacity-60 p-8 rounded-lg shadow-2xl">
           <h1 className="text-white font-extrabold text-4xl md:text-5xl text-center mb-8 tracking-wide uppercase">
             Who's Watching?

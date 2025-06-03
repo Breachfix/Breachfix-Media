@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { getEpisodeContextById } from "@/utils";
 import Hls from "hls.js";
 import { ArrowLeft, SkipBack, SkipForward } from "lucide-react";
+import WatchProgressHandler from "@/components/watch-progress-handle";
+
 
 export default function EpisodePlayer({
   episodeId,
@@ -23,6 +25,17 @@ export default function EpisodePlayer({
   const hideControlsTimeout = useRef(null);
   const [canShowSkipIntro, setCanShowSkipIntro] = useState(true);
   const [awaitingPlay, setAwaitingPlay] = useState(false);
+  const [uid, setUid] = useState(null);
+  const [accountId, setAccountId] = useState(null);
+
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    const acc = JSON.parse(sessionStorage.getItem("loggedInAccount"));
+    if (userId && acc?._id) {
+      setUid(userId);
+      setAccountId(acc._id);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -173,12 +186,25 @@ useEffect(() => {
 
   return (
     <div className="relative w-full h-screen bg-black text-white">
+
+
+
       <video
         ref={videoRef}
         controls
         poster={poster || episode.thumbnail_url_s3}
         className="w-full h-full object-contain bg-black"
       >
+                {/* {uid && accountId && (
+  <WatchProgressHandler
+    uid={uid}
+    accountId={accountId}
+    mediaId={episodeId}
+    type="episode"
+    videoRef={videoRef}
+    onAutoSkipIntro={() => setCanShowSkipIntro(false)} // 👈 optional callback
+  />
+)} */}
         <source
           src={
             episode.transcodedVideo ||

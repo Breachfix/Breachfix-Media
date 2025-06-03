@@ -49,11 +49,12 @@ export default function MediaItem({
     }
   }
 
-  function detectMediaType(item) {
-    if (item?.seasonNumber && item?.episodeNumber) return "episode";
-    if (item?.seasons) return "tv";
-    return "movie";
-  }
+function detectMediaType(item) {
+  if (item?.type) return item.type;
+  if (item?.seasonNumber && item?.episodeNumber) return "episode";
+  if (item?.seasons) return "tv";
+  return "movie";
+}
 
   async function handleAddToFavorites(item) {
     const {
@@ -71,8 +72,6 @@ export default function MediaItem({
     } = item;
 
     const detectedType = detectMediaType(item);
-    console.log("💾 Saving favorite with type:", detectedType, "ID:", id);
-
     let finalTitle = title || "";
     let finalDescription = description || "";
     let imageUrl =
@@ -148,7 +147,6 @@ export default function MediaItem({
         }
       }
     }
-    console.log("✅ Favorite added:", data);
   }
 
   async function handleRemoveFavorites(item) {
@@ -171,60 +169,70 @@ export default function MediaItem({
     ? media.thumbnail_url
     : "/fallback.jpg";
 
+  const type = detectMediaType(media);
+  const idToUse = listView ? media?.movieID : media?.id;
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.8, delay: 0.5, ease: [0, 0.71, 0.2, 1.01] }}
     >
-      <div className="relative cardWrapper h-28 min-w-[180px] cursor-pointer md:h-36 md:min-w-[260px] transform transition duration-500 hover:scale-110 hover:z-[999]">
+      <div className="relative w-[85vw] h-[50vw] sm:h-36 sm:min-w-[260px] sm:max-w-[260px] cursor-pointer transform transition duration-500 hover:scale-105 hover:z-[999]">
         <Image
           src={imageUrl}
           alt={media?.title || "Media"}
           fill
           sizes="(max-width: 768px) 100vw, 50vw"
           className="rounded sm object-cover md:rounded hover:rounded-sm"
-          onClick={() => {
-            const type = detectMediaType(media);
-            const idToUse = listView ? media?.movieID : media?.id;
-            if (type === "episode") router.push(`/watch/episode/${idToUse}`);
-            else if (type === "tv") router.push(`/tv/${idToUse}`);
-            else router.push(`/watch/movie/${idToUse}`);
-          }}
           unoptimized
         />
 
-        <div className="space-x-3 hidden absolute p-2 bottom-0 buttonWrapper">
-          <button
-            onClick={
-              media?.addedToFavorites
-                ? listView
-                  ? () => handleRemoveFavorites(media)
-                  : null
-                : () => handleAddToFavorites(media)
-            }
-            className={`$${
-              media?.addedToFavorites && !listView && "cursor-not-allowed"
-            } cursor-pointer border flex p-2 items-center gap-x-2 rounded-full  text-sm font-semibold transition hover:opacity-90 border-white bg-black opacity-75 text-black`}
-          >
-            {media?.addedToFavorites ? (
-              <CheckIcon color="#ffffff" className="h-7 w-7" />
-            ) : (
-              <PlusIcon color="#ffffff" className="h-7 w-7" />
-            )}
-          </button>
+        {/* Overlay buttons shown on hover */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 bg-black bg-opacity-50 rounded">
           <button
             onClick={() => {
-              setShowDetailsPopup(true);
-              setCurrentMediaInfoIdAndType({
-                type: detectMediaType(media),
-                id: listView ? media?.movieID : media?.id,
-              });
+              if (type === "episode") router.push(`/watch/episode/${idToUse}`);
+              else if (type === "tv") router.push(`/tv/${idToUse}`);
+              else router.push(`/watch/movie/${idToUse}`);
             }}
-            className="cursor-pointer p-2 border flex items-center gap-x-2 rounded-full text-sm font-semibold transition hover:opacity-90 border-white bg-black opacity-75"
+            className="text-white bg-white/20 hover:bg-white/40 text-sm px-4 py-2 rounded-full mb-2"
           >
-            <ChevronDownIcon color="#ffffff" className="h-7 w-7" />
+            {(type === "tv" && "View Episodes") || (type === "episode" && "Watch Now") || "Watch Now"}
           </button>
+
+          <div className="flex space-x-3 mt-2">
+            {/* Add to Favorites */}
+            <button
+              onClick={
+                media?.addedToFavorites
+                  ? listView
+                    ? () => handleRemoveFavorites(media)
+                    : null
+                  : () => handleAddToFavorites(media)
+              }
+              className={`${
+                media?.addedToFavorites && !listView && "cursor-not-allowed"
+              } cursor-pointer border flex p-2 items-center gap-x-2 rounded-full text-sm font-semibold transition hover:opacity-90 border-white bg-black bg-opacity-70 text-white`}
+            >
+              {media?.addedToFavorites ? (
+                <CheckIcon className="h-5 w-5" />
+              ) : (
+                <PlusIcon className="h-5 w-5" />
+              )}
+            </button>
+
+            {/* Details Popup */}
+            <button
+              onClick={() => {
+                setShowDetailsPopup(true);
+                setCurrentMediaInfoIdAndType({ type, id: idToUse });
+              }}
+              className="cursor-pointer p-2 border flex items-center gap-x-2 rounded-full text-sm font-semibold transition hover:opacity-90 border-white bg-black bg-opacity-70 text-white"
+            >
+              <ChevronDownIcon className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>

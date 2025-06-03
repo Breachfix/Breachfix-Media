@@ -15,6 +15,9 @@ const watch = axios.create({
   baseURL: `${API_URL}/watch`, // Base URL for movies
 });
 
+const media = axios.create({
+  baseURL: `${API_URL}/media`, 
+});
 const search = axios.create({
   baseURL: `${API_URL}/search`, // Base URL for movies
 });
@@ -208,7 +211,6 @@ export const getTVorMovieSearchResults = async (type, query) => {
     return [];
   }
 };
-
 export const getTVorMovieDetailsByID = async (type, id) => {
   try {
     const res = await axios.get(`${API_URL}/media/${type}/${id}`);
@@ -216,17 +218,17 @@ export const getTVorMovieDetailsByID = async (type, id) => {
 
     if (!data) return null;
 
-    // 👇 Enhance data for 'episode' type by fetching parent TV show
+    // ✅ Enhanced episode support: fetch parent TV show
     if (type === "episode") {
       const tvShowId = data.tvShowId || data.tvShow?._id;
       if (tvShowId) {
-        const tvShowRes = await axios.get(`${API_URL}/media/tvShow/${tvShowId}`);
+        const tvShowRes = await axios.get(`${API_URL}/media/tv/${tvShowId}`);
         const tvShowData = tvShowRes.data?.data;
 
         return {
           ...data,
           title: `${tvShowData.title} - S${data.seasonNumber}E${data.episodeNumber}`,
-          genres: tvShowData.genres,
+          genres: tvShowData.genres || [],
           release_date: data.releaseDate || tvShowData.releaseDate,
           poster_path: data.thumbnail || tvShowData.poster,
           backdrop_path: data.backdrop || tvShowData.backdrop,
@@ -241,7 +243,7 @@ export const getTVorMovieDetailsByID = async (type, id) => {
       }
     }
 
-    // 👇 Normalize movie and tvShow fields as well
+    // ✅ Normalize for movie or tv
     return {
       ...data,
       video_url:
@@ -259,7 +261,6 @@ export const getTVorMovieDetailsByID = async (type, id) => {
     return null;
   }
 };
-
 export const fetchTrailerFromYouTube = async (title) => {
   try {
     const res = await fetch(`/api/videos/search-trailer?title=${encodeURIComponent(title)}`);
@@ -272,13 +273,22 @@ export const fetchTrailerFromYouTube = async (title) => {
     return null;
   }
 };
+export const getSimilarMedia = async (type, id) => {
+  const url = `${API_URL}/media/${type}/${id}/similar`;
 
-export const getSimilarTVorMovies = async (type, id) => {
+  console.log("👉 getSimilarMedia URL:", url); // Add this log
+
   try {
-    const res = await axios.get(`${API_URL}/media/${type}/${id}/similar`);
-    return res.data || [];
+    const res = await axios.get(url);
+    return res.data?.data || [];
   } catch (error) {
-    console.error("❌ Error fetching similar content:", error?.response?.data || error.message);
+    console.error("❌ Error fetching similar content:", {
+      url,
+      status: error?.response?.status || "N/A",
+      message: error?.message || "Unknown error",
+      data: error?.response?.data || "No response data",
+      stack: error?.stack,
+    });
     return [];
   }
 };
