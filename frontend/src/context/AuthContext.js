@@ -10,7 +10,17 @@ export const AuthProvider = ({ children }) => {
   const [authLoading, setAuthLoading] = useState(true);
 
   const getUserId = () => user?.id || localStorage.getItem("userId");
-  const getLoggedInAccount = () => JSON.parse(sessionStorage.getItem("loggedInAccount")) || null;
+  const getLoggedInAccount = () => {
+  if (typeof window !== "undefined") {
+    try {
+      return JSON.parse(sessionStorage.getItem("loggedInAccount")) || null;
+    } catch (err) {
+      console.warn("❌ Error accessing sessionStorage:", err.message);
+      return null;
+    }
+  }
+  return null;
+};
 
   const loadUserFromStorage = () => {
     const userId = localStorage.getItem("userId");

@@ -195,7 +195,7 @@ useEffect(() => {
         poster={poster || episode.thumbnail_url_s3}
         className="w-full h-full object-contain bg-black"
       >
-                {/* {uid && accountId && (
+                {uid && accountId && (
   <WatchProgressHandler
     uid={uid}
     accountId={accountId}
@@ -204,7 +204,7 @@ useEffect(() => {
     videoRef={videoRef}
     onAutoSkipIntro={() => setCanShowSkipIntro(false)} // 👈 optional callback
   />
-)} */}
+)}
         <source
           src={
             episode.transcodedVideo ||

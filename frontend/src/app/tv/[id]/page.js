@@ -96,7 +96,7 @@ export default function TVShowDetailPage() {
         <div className="relative w-full h-[70vh] md:h-[60vh] lg:h-[50vh]">
           <Image
             src={trailerImage}
-            alt={tvShow.title}
+            alt={firstEpisode.title}
             fill
             className="object-cover object-center"
             priority
@@ -105,10 +105,10 @@ export default function TVShowDetailPage() {
 
           <div className="absolute bottom-10 left-4 md:left-10 z-20 text-white">
             <h1 className="text-3xl md:text-5xl font-extrabold mb-2">
-              {tvShow.title}
+              { currentSeason.title || firstEpisode.title }
             </h1>
             <p className="text-gray-300 max-w-2xl text-sm md:text-base line-clamp-3">
-              {tvShow.description}
+              { currentSeason.description || firstEpisode.description }
             </p>
             <div className="flex gap-4 mt-4">
               <button
@@ -135,7 +135,7 @@ export default function TVShowDetailPage() {
             >
               {tvShow.seasons?.map((season, index) => (
                 <option key={season._id} value={index}>
-                  Season {season.number || index + 1}
+                  Season {season.number}
                 </option>
               ))}
             </select>

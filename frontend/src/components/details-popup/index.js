@@ -61,16 +61,31 @@ export default function DetailsPopup({ show, setShow }) {
         const similar = await getSimilarMedia(type, id);
         const favorites = await getAllfavorites(user?.id, loggedInAccount?._id);
 
-        setSimilarMedias(
-          Array.isArray(similar)
-            ? similar.map((item) => ({
-                ...item,
-                type: type === "movie" ? "movie" : type === "episode" ? "episode" : "tv",
-                addedToFavorites:
-                  favorites?.map((fav) => fav.movieID).includes(item.id) ?? false,
-              }))
-            : []
-        );
+       setSimilarMedias(
+  Array.isArray(similar)
+    ? similar.map((item) => {
+        const detectedType =
+          item.type ||
+          (item.seasonNumber && item.episodeNumber
+            ? "episode"
+            : item.seasons
+            ? "tv"
+            : "movie");
+
+        const movieID = item.movieID || item._id || item.id;
+
+        return {
+          ...item,
+          id: item.id || item._id || item.movieID, // for frontend interactions
+          type: detectedType,
+          addedToFavorites:
+            favorites?.some((fav) => fav.movieID === movieID) ?? false,
+        };
+      })
+    : []
+);
+
+       
 
         // Set video key (trailer fallback logic)
         let videoKey = mainDetails?.videoKey;
@@ -148,9 +163,9 @@ export default function DetailsPopup({ show, setShow }) {
             <div className="pb-8 text-white space-y-4">
               <div className="flex flex-wrap items-center gap-4 text-2xl font-extrabold tracking-wide">
                 <h1 className="text-white uppercase">{mediaDetails?.title || "Untitled"}</h1>
-                {mediaDetails?.release_date && (
+                {mediaDetails?.releaseDate && (
                   <span className="bg-red-600 text-white px-2 py-0.5 rounded text-sm font-semibold">
-                    {mediaDetails.release_date.split("-")[0]}
+                    {mediaDetails.releaseDate.split("-")[0]}
                   </span>
                 )}
                 {currentMediaInfoIdAndType?.type && (

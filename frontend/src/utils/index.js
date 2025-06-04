@@ -274,21 +274,23 @@ export const fetchTrailerFromYouTube = async (title) => {
   }
 };
 export const getSimilarMedia = async (type, id) => {
-  const url = `${API_URL}/media/${type}/${id}/similar`;
-
-  console.log("👉 getSimilarMedia URL:", url); // Add this log
-
   try {
-    const res = await axios.get(url);
+    const res = await media.get(`/${type}/${id}/similar`);
     return res.data?.data || [];
   } catch (error) {
-    console.error("❌ Error fetching similar content:", {
-      url,
-      status: error?.response?.status || "N/A",
-      message: error?.message || "Unknown error",
+    const status = error?.response?.status || "N/A";
+    const message = error?.response?.data?.message || error.message || "Unknown error";
+    const errorData = {
+      type,
+      id,
+      url: `${media.defaults.baseURL}/${type}/${id}/similar`,
+      status,
+      message,
       data: error?.response?.data || "No response data",
       stack: error?.stack,
-    });
+    };
+
+    console.error("❌ Error fetching similar media:", errorData);
     return [];
   }
 };
@@ -336,8 +338,13 @@ export const fetchHeroContent = async () => {
  * @param {string} id 
  * @returns full media object with title, videoUrl, HLS, etc.
  */
-export const fetchWatchContent = async (type, id) => {
+export const fetchWatchContent = async (type, idOrMedia) => {
   try {
+    // ✅ Handle both media object and plain id string
+    const id = typeof idOrMedia === "object"
+      ? idOrMedia.movieID || idOrMedia.episodeID || idOrMedia.id || idOrMedia._id
+      : idOrMedia;
+
     const response = await watch.get(`/${type}/${id}`);
     if (!response.data.success) throw new Error("⚠️ Failed to retrieve video details");
 
@@ -352,17 +359,12 @@ export const fetchWatchContent = async (type, id) => {
       videoUrl =
         content.previewVideoUrl ||
         firstEp?.HLS?.["1080p"] ||
-        firstEp?.videoUrl ||
-        null;
+        firstEp?.videoUrl || null;
       HLS = firstEp?.HLS || {};
-    } 
-    
-    else if (type === "movie") {
+    } else if (type === "movie") {
       videoUrl = content.HLS?.master || content.videoUrl || null;
       HLS = content.HLS || {};
-    } 
-    
-    else if (type === "episode") {
+    } else if (type === "episode") {
       videoUrl =
         content.HLS?.["1080p"] ||
         content.HLS?.["720p"] ||
@@ -370,7 +372,6 @@ export const fetchWatchContent = async (type, id) => {
         content.videoUrl || null;
       HLS = content.HLS || {};
 
-      // ✅ Only attempt to flatten if seasons is a valid array
       const allEpisodes = Array.isArray(content.seasons)
         ? content.seasons.flatMap(season => season.episodes || [])
         : [];

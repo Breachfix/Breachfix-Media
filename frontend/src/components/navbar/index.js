@@ -155,9 +155,12 @@ export default function Navbar() {
             />
           ) : (
             <AiOutlineSearch
-              onClick={() => setShowSearchBar(true)}
-              className="w-6 h-6 cursor-pointer"
-            />
+  onClick={() => {
+    console.log("Search icon clicked");
+    setShowSearchBar(true);
+  }}
+  className="w-6 h-6 cursor-pointer z-50"
+/>
           )}
 
           <div
@@ -169,6 +172,9 @@ export default function Navbar() {
               alt="Current Profile"
               className="w-[30px] h-[30px] rounded object-cover"
             />
+            <p className="ml-2 truncate max-w-[120px] hidden sm:inline">
+               {loggedInAccount?.name || "Unnamed"}
+            </p>
           </div>
         </div>
       </header>

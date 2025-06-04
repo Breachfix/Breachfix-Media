@@ -22,32 +22,38 @@ export default function WatchPage() {
   const [showHeader, setShowHeader] = useState(true);
   const [showGenres, setShowGenres] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setPageLoader(true);
+useEffect(() => {
+  const load = async () => {
+    try {
+      setPageLoader(true);
 
-        const type = params.id?.[0];
-        const id = params.id?.[1];
-        if (!type || !id) throw new Error("Missing type or ID");
+      const type = params.id?.[0];
+      const rawId = params.id?.[1];
+      if (!type || !rawId) throw new Error("Missing type or ID");
 
-        const content = await fetchWatchContent(type, id);
+      // Normalize the ID (if coming from favorites or shared media object)
+      const mediaId = rawId.startsWith("fav-")
+        ? rawId.replace("fav-", "") // Example: use a prefix convention if you pass it from favorites
+        : rawId;
 
-        setMedia({
-          ...content,
-          type,
-          nextEpisodeId: content.nextEpisodeId || null,
-          prevEpisodeId: content.prevEpisodeId || null,
-        });
-      } catch (e) {
-        setError(e.message || "Unknown error");
-      } finally {
-        setPageLoader(false);
-      }
-    };
+      const content = await fetchWatchContent(type, mediaId); // ✅ Will auto-detect movieID/etc inside
 
-    load();
-  }, [params]);
+      setMedia({
+        ...content,
+        type,
+        nextEpisodeId: content.nextEpisodeId || null,
+        prevEpisodeId: content.prevEpisodeId || null,
+      });
+    } catch (e) {
+      console.error("❌ Error in WatchPage:", e);
+      setError(e.message || "Unknown error");
+    } finally {
+      setPageLoader(false);
+    }
+  };
+
+  load();
+}, [params]);
 
   useEffect(() => {
     // Hide header and genres after 5 seconds

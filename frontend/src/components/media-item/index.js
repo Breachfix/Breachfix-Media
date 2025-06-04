@@ -49,12 +49,12 @@ export default function MediaItem({
     }
   }
 
-function detectMediaType(item) {
-  if (item?.type) return item.type;
-  if (item?.seasonNumber && item?.episodeNumber) return "episode";
-  if (item?.seasons) return "tv";
-  return "movie";
-}
+  function detectMediaType(item) {
+    if (item?.type) return item.type;
+    if (item?.seasonNumber && item?.episodeNumber) return "episode";
+    if (item?.seasons) return "tv";
+    return "movie";
+  }
 
   async function handleAddToFavorites(item) {
     const {
@@ -82,6 +82,7 @@ function detectMediaType(item) {
       poster_path ||
       backdrop_path ||
       "/fallback.jpg";
+
     let videoUrlToSave = video_url_s3 || videoUrl || "";
 
     if (detectedType === "episode" && (!finalTitle || !finalDescription)) {
@@ -107,7 +108,7 @@ function detectMediaType(item) {
       body: JSON.stringify({
         uid: user?.id,
         accountID: loggedInAccount?._id,
-        movieID: id,
+        movieID: item.movieID || item._id || item.id,
         type: detectedType,
         title: finalTitle,
         description: finalDescription,
@@ -160,23 +161,29 @@ function detectMediaType(item) {
   const isValidImage = (url) => typeof url === "string" && url.startsWith("http");
 
   function getThumbnailFallback(media) {
-  if (isValidImage(media?.video_url_s3)) {
-    const base = media.video_url_s3.split("/").slice(0, -1).join("/");
-    return `${base}/thumbnail.jpg`; // assumes S3 has a thumbnail with same name
+    if (isValidImage(media?.video_url_s3)) {
+      const base = media.video_url_s3.split("/").slice(0, -1).join("/");
+      return `${base}/thumbnail.jpg`;
+    }
+    return "/fallback.jpg";
   }
-  return "/fallback.jpg";
-}
 
-const imageUrl =
-  isValidImage(media?.thumbnail_url_s3) ? media.thumbnail_url_s3 :
-  isValidImage(media?.thumbnailUrl) ? media.thumbnailUrl :
-  isValidImage(media?.posterUrl) ? media.posterUrl :
-  isValidImage(media?.thumbnail_url) ? media.thumbnail_url :
-  isValidImage(media?.backdrop_path) ? media.backdrop_path :
-  getThumbnailFallback(media);
+  const imageUrl =
+    isValidImage(media?.thumbnail_url_s3) ? media.thumbnail_url_s3 :
+    isValidImage(media?.thumbnailUrl) ? media.thumbnailUrl :
+    isValidImage(media?.posterUrl) ? media.posterUrl :
+    isValidImage(media?.thumbnail_url) ? media.thumbnail_url :
+    isValidImage(media?.backdrop_path) ? media.backdrop_path :
+    getThumbnailFallback(media);
 
   const type = detectMediaType(media);
-  const idToUse = listView ? media?.movieID : media?.id;
+  const favoriteIdToUse = media?.movieID;
+  const generalIdToUse = media?.movieID || media?.id || media?._id || null;
+
+  if (!generalIdToUse) {
+    console.warn("⚠️ Missing media ID:", media);
+    return null;
+  }
 
   return (
     <motion.div
@@ -194,21 +201,21 @@ const imageUrl =
           unoptimized
         />
 
-        {/* Overlay buttons shown on hover */}
         <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 bg-black bg-opacity-50 rounded">
           <button
             onClick={() => {
-              if (type === "episode") router.push(`/watch/episode/${idToUse}`);
-              else if (type === "tv") router.push(`/tv/${idToUse}`);
-              else router.push(`/watch/movie/${idToUse}`);
+              if (type === "episode") router.push(`/watch/episode/${generalIdToUse}`);
+              else if (type === "tv") router.push(`/tv/${generalIdToUse}`);
+              else router.push(`/watch/movie/${generalIdToUse}`);
             }}
             className="text-white bg-white/20 hover:bg-white/40 text-sm px-4 py-2 rounded-full mb-2"
           >
-            {(type === "tv" && "View Episodes") || (type === "episode" && "Watch Now") || "Watch Now"}
+            {(type === "tv" && "View Episodes") ||
+              (type === "episode" && "Watch Now") ||
+              "Watch Now"}
           </button>
 
           <div className="flex space-x-3 mt-2">
-            {/* Add to Favorites */}
             <button
               onClick={
                 media?.addedToFavorites
@@ -228,11 +235,15 @@ const imageUrl =
               )}
             </button>
 
-            {/* Details Popup */}
             <button
               onClick={() => {
+                if (!generalIdToUse) {
+                  console.warn("⛔ No ID found for media", media);
+                  return;
+                }
+                const mediaID = media.movieID || media._id || media.id;
+                setCurrentMediaInfoIdAndType({ type, id: mediaID });
                 setShowDetailsPopup(true);
-                setCurrentMediaInfoIdAndType({ type, id: idToUse });
               }}
               className="cursor-pointer p-2 border flex items-center gap-x-2 rounded-full text-sm font-semibold transition hover:opacity-90 border-white bg-black bg-opacity-70 text-white"
             >

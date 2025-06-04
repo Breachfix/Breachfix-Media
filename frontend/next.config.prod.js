@@ -1,10 +1,26 @@
 const nextProdConfig = {
   images: {
-    domains: [
-      "image.tmdb.org",
-      "d3rotgd7sghdsb.cloudfront.net",
-      "bridgefixdb.s3.us-east-1.amazonaws.com",
-      "firebasestorage.googleapis.com",
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "image.tmdb.org",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "d3rotgd7sghdsb.cloudfront.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "bridgefixdb.s3.us-east-1.amazonaws.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "firebasestorage.googleapis.com",
+        pathname: "/**",
+      },
     ],
   },
   async headers() {
