@@ -134,16 +134,15 @@ useEffect(() => {
         ) : media.type === "movie" ? (
           <MoviePlayer hlsUrl={getPlayableUrl()} poster={media.posterUrl || media.thumbnailUrl} />
         ) : (
-          <EpisodePlayer
-            episodeId={media.id || media._id}
-            url={getPlayableUrl()}
-            poster={media.posterUrl || media.thumbnailUrl}
-            nextEpisodeId={media.nextEpisodeId}
-            prevEpisodeId={media.prevEpisodeId}
-            tvShowId={media.tvShowId}
-            seasonNumber={media.seasonNumber}
-            episodeNumber={media.episodeNumber}
-          />
+         <EpisodePlayer
+  episode={media}
+  poster={media.posterUrl || media.thumbnailUrl}
+  nextEpisodeId={media.nextEpisodeId}
+  prevEpisodeId={media.prevEpisodeId}
+  tvShowId={media.tvShowId}
+  seasonNumber={media.seasonNumber}
+  episodeNumber={media.episodeNumber}
+/>
         )}
       </motion.div>
     </RequireAuth>

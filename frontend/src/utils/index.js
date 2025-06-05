@@ -340,10 +340,10 @@ export const fetchHeroContent = async () => {
  */
 export const fetchWatchContent = async (type, idOrMedia) => {
   try {
-    // ✅ Detect ID: If object (like from MyList), extract correct ID
-    const id = typeof idOrMedia === "object"
-      ? idOrMedia.movieID || idOrMedia.id || idOrMedia._id
-      : idOrMedia;
+    const id =
+      typeof idOrMedia === "object"
+        ? idOrMedia.movieID || idOrMedia.episodeID || idOrMedia.id || idOrMedia._id
+        : idOrMedia;
 
     if (!id) throw new Error("❌ Invalid media ID provided.");
 
@@ -360,19 +360,24 @@ export const fetchWatchContent = async (type, idOrMedia) => {
       const firstEp = content.seasons?.[0]?.episodes?.[0];
       videoUrl =
         content.previewVideoUrl ||
-        firstEp?.HLS?.["1080p"] ||
-        firstEp?.videoUrl || null;
+        firstEp?.HLS?.master ||
+        firstEp?.videoUrl ||
+        null;
       HLS = firstEp?.HLS || {};
-    } else if (type === "movie") {
+    }
+
+    if (type === "movie") {
       videoUrl = content.HLS?.master || content.videoUrl || null;
-      HLS = content.HLS || {};
-    } else if (type === "episode") {
+      HLS = { master: content.HLS?.master || null };
+    }
+
+    if (type === "episode") {
       videoUrl =
-        content.HLS?.["1080p"] ||
-        content.HLS?.["720p"] ||
-        content.HLS?.["480p"] ||
-        content.videoUrl || null;
-      HLS = content.HLS || {};
+        content.HLS?.master ||
+        content.videoUrl ||
+        content.transcodedVideo ||
+        null;
+      HLS = { master: content.HLS?.master || null };
 
       const allEpisodes = Array.isArray(content.seasons)
         ? content.seasons.flatMap(season => season.episodes || [])
@@ -404,6 +409,8 @@ export const fetchWatchContent = async (type, idOrMedia) => {
       trailerUrl: content.trailerUrl || '',
       posterUrl: content.posterUrl || '',
       pricing: content.pricing || null,
+      tvShowId: content.tvShowId || null,
+      seasonNumber: content.season || null,
       seasons: content.seasons || [],
       nextEpisodeId,
       prevEpisodeId,
@@ -416,10 +423,13 @@ export const fetchWatchContent = async (type, idOrMedia) => {
 
 export const getEpisodeContextById = async (episodeId) => {
   try {
-    const response = await episode.get(`/${episodeId}/context`);
+    const response = await episode.get(`/episodes/${episodeId}/context`);
     return response.data;
   } catch (error) {
-    console.error("❌ Failed to fetch episode context:", error);
+    console.error(
+      "❌ Failed to fetch episode context:",
+      error?.response?.data || error.message
+    );
     return {
       success: false,
       message: "Error fetching episode context",
@@ -429,6 +439,8 @@ export const getEpisodeContextById = async (episodeId) => {
     };
   }
 };
+    
+ 
 
 export const getNextPrevMediaByGenre = async (type, genre, currentId) => {
   const mediaList = await getTVorMoviesByGenre(type, genre);

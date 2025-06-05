@@ -7,16 +7,15 @@ import Hls from "hls.js";
 import { ArrowLeft, SkipBack, SkipForward } from "lucide-react";
 import WatchProgressHandler from "@/components/watch-progress-handle";
 
-
 export default function EpisodePlayer({
-  episodeId,
+  episode,
   poster,
   onSkipIntro,
   nextEpisodeId,
   prevEpisodeId,
 }) {
   const router = useRouter();
-  const [episode, setEpisode] = useState(null);
+  const episodeId = episode?._id;
   const videoRef = useRef(null);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdown, setCountdown] = useState(5);
@@ -88,14 +87,19 @@ export default function EpisodePlayer({
 useEffect(() => {
   if (!episode || !videoRef.current) return;
 
+  // Fallback logic in case HLS is a string
+  const episodeHLS =
+    typeof episode.HLS === "string"
+      ? { master: episode.HLS }
+      : episode.HLS || {};
+
   const url =
+    episodeHLS.master ||
     episode.transcodedVideo ||
     episode.video_url_s3 ||
-    episode.HLS?.master ||
     episode.trailerUrl;
 
   if (!url) return;
-  
 
   const video = videoRef.current;
 
@@ -136,6 +140,7 @@ useEffect(() => {
     video.play().catch((err) => console.warn("⚠️ Autoplay blocked:", err));
   }
 }, [episode]);
+
   useEffect(() => {
     const handleInteraction = () => {
       setHovering(true);
@@ -156,7 +161,7 @@ useEffect(() => {
       clearTimeout(hideControlsTimeout.current);
     };
   }, []);
-  // 🧠 Hide Skip Intro after 60 seconds
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -186,30 +191,29 @@ useEffect(() => {
 
   return (
     <div className="relative w-full h-screen bg-black text-white">
-
-
-
       <video
         ref={videoRef}
         controls
         poster={poster || episode.thumbnail_url_s3}
         className="w-full h-full object-contain bg-black"
       >
-                {uid && accountId && (
-  <WatchProgressHandler
-    uid={uid}
-    accountId={accountId}
-    mediaId={episodeId}
-    type="episode"
-    videoRef={videoRef}
-    onAutoSkipIntro={() => setCanShowSkipIntro(false)} // 👈 optional callback
-  />
-)}
+        {uid && accountId && (
+          <WatchProgressHandler
+            uid={uid}
+            accountId={accountId}
+            mediaId={episodeId}
+            type="episode"
+            videoRef={videoRef}
+            onAutoSkipIntro={() => setCanShowSkipIntro(false)}
+          />
+        )}
         <source
           src={
+            (typeof episode.HLS === "string"
+               ? episode.HLS
+               : episode.HLS?.master) ||
             episode.transcodedVideo ||
             episode.video_url_s3 ||
-            episode.HLS?.master ||
             episode.trailerUrl
           }
           type="application/x-mpegURL"
@@ -217,7 +221,6 @@ useEffect(() => {
         Your browser does not support HLS playback.
       </video>
 
-      {/* Skip Intro Button */}
       {hovering && showControls && canShowSkipIntro && (
         <button
           onClick={() => {
@@ -229,7 +232,7 @@ useEffect(() => {
           ⏭ Skip Intro
         </button>
       )}
-      {/* Countdown to next */}
+
       {showCountdown && (
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded shadow-md z-30">
           <p>Next episode in {countdown}s...</p>
@@ -245,7 +248,6 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Navigation Buttons */}
       {hovering && (
         <div className="absolute bottom-8 w-full flex justify-center gap-4 z-20">
           {prevEpisodeId && (
@@ -268,18 +270,17 @@ useEffect(() => {
       )}
 
       {awaitingPlay && (
-  <div
-    className="absolute inset-0 bg-black/80 flex items-center justify-center z-40 cursor-pointer"
-    onClick={() => {
-      videoRef.current.muted = false;
-      videoRef.current.play();
-      setAwaitingPlay(false);
-    }}
-  >
-    <p className="text-white text-xl bg-white/10 px-6 py-3 rounded">▶ Tap to Play</p>
-  </div>
-)}
+        <div
+          className="absolute inset-0 bg-black/80 flex items-center justify-center z-40 cursor-pointer"
+          onClick={() => {
+            videoRef.current.muted = false;
+            videoRef.current.play();
+            setAwaitingPlay(false);
+          }}
+        >
+          <p className="text-white text-xl bg-white/10 px-6 py-3 rounded">▶ Tap to Play</p>
+        </div>
+      )}
     </div>
   );
 }
-
