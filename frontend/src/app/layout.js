@@ -4,6 +4,7 @@ import GlobalState from "@/context";
 import { AuthProvider } from "@/context/AuthContext";
 import SuppressHydrationWarning from "@/components/SuppressHydrationWarning";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next"
 
 const workSans = Work_Sans({
   subsets: ["latin"],

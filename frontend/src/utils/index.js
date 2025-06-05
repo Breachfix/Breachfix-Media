@@ -340,10 +340,12 @@ export const fetchHeroContent = async () => {
  */
 export const fetchWatchContent = async (type, idOrMedia) => {
   try {
-    // ✅ Handle both media object and plain id string
+    // ✅ Detect ID: If object (like from MyList), extract correct ID
     const id = typeof idOrMedia === "object"
-      ? idOrMedia.movieID || idOrMedia.episodeID || idOrMedia.id || idOrMedia._id
+      ? idOrMedia.movieID || idOrMedia.id || idOrMedia._id
       : idOrMedia;
+
+    if (!id) throw new Error("❌ Invalid media ID provided.");
 
     const response = await watch.get(`/${type}/${id}`);
     if (!response.data.success) throw new Error("⚠️ Failed to retrieve video details");
@@ -376,7 +378,9 @@ export const fetchWatchContent = async (type, idOrMedia) => {
         ? content.seasons.flatMap(season => season.episodes || [])
         : [];
 
-      const currentIndex = allEpisodes.findIndex(ep => ep.episodeId === id);
+      const currentIndex = allEpisodes.findIndex(ep =>
+        ep.episodeId === id || ep._id === id
+      );
 
       if (currentIndex !== -1) {
         prevEpisodeId = allEpisodes[currentIndex - 1]?.episodeId || null;
