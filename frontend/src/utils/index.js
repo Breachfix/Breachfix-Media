@@ -213,14 +213,17 @@ export const getTVorMovieSearchResults = async (type, query) => {
 };
 export const getTVorMovieDetailsByID = async (type, id) => {
   try {
-    const res = await axios.get(`${API_URL}/media/${type}/${id}`);
+    const url = `/${type}/${id}`;
+    console.log("📡 Fetching media details from:", url);
+    const res = await media.get(url);
     const data = res.data?.data;
 
     if (!data) return null;
 
-    // ✅ Enhanced episode support: fetch parent TV show
+    // ✅ If it's an episode, merge metadata from parent TV show
     if (type === "episode") {
-      const tvShowId = data.tvShowId || data.tvShow?._id;
+      const tvShowId = data.tvShowId?._id || data.tvShowId;
+
       if (tvShowId) {
         const tvShowRes = await axios.get(`${API_URL}/media/tv/${tvShowId}`);
         const tvShowData = tvShowRes.data?.data;
@@ -230,34 +233,39 @@ export const getTVorMovieDetailsByID = async (type, id) => {
           title: `${tvShowData.title} - S${data.seasonNumber}E${data.episodeNumber}`,
           genres: tvShowData.genres || [],
           release_date: data.releaseDate || tvShowData.releaseDate,
-          poster_path: data.thumbnail || tvShowData.poster,
+          poster_path: data.thumbnailUrl || tvShowData.posterUrl,
           backdrop_path: data.backdrop || tvShowData.backdrop,
           trailer_url: data.trailerUrl || tvShowData.trailerUrl,
           video_url:
+            (typeof data.HLS === "string" ? data.HLS : data.HLS?.master) ||
+            data.videoUrl ||
             data.video_url_s3 ||
             data.transcodedVideo ||
-            data.HLS?.["1080p"] ||
-            data.HLS?.["720p"] ||
+            data.trailerUrl ||
             tvShowData.trailerUrl,
         };
       }
     }
 
-    // ✅ Normalize for movie or tv
+    // ✅ For movies or TV shows
     return {
       ...data,
       video_url:
-        data.trailerUrl ||
-        data.trailer ||
+        (typeof data.HLS === "string" ? data.HLS : data.HLS?.master) ||
+        data.videoUrl ||
         data.video_url_s3 ||
         data.transcodedVideo ||
-        data.HLS?.["1080p"] ||
-        data.HLS?.["720p"],
-      poster_path: data.poster || data.thumbnail,
+        data.trailerUrl,
+      poster_path: data.poster || data.thumbnailUrl,
       backdrop_path: data.backdrop,
     };
   } catch (error) {
-    console.error("❌ Error fetching media details:", error?.response?.data || error.message);
+    const message =
+    error?.response?.data?.message ||
+    error?.response?.data ||
+    error?.message ||
+    error.toString();
+    console.error("❌ Error fetching media details:", message);
     return null;
   }
 };
@@ -316,10 +324,14 @@ export const fetchHeroContent = async () => {
   try {
     const response = await api.get(`/hero-content/random`);
 
-    // Axios responses are always resolved unless status is 4xx/5xx, so no need for response.ok
-    const data = response.data;
+    let data = response.data;
     console.log("✅ Fetched hero content:", data);
-    return data;
+
+    // Normalize type for consistent frontend routing
+    let normalizedType = data.type;
+    if (normalizedType === "tvShow") normalizedType = "tv";
+
+    return { ...data, type: normalizedType };
   } catch (error) {
     console.error("❌ Error fetching hero content:", {
       message: error.message,

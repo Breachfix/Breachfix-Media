@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AiFillPlayCircle } from "react-icons/ai";
 import { IoMdInformationCircleOutline } from "react-icons/io";
 import { fetchHeroContent } from "@/utils";
-import { useContext } from "react";
 import { GlobalContext } from "@/context";
 import DetailsPopup from "@/components/details-popup";
 
@@ -19,12 +18,13 @@ export default function Banner() {
   useEffect(() => {
     const fetchHero = async () => {
       try {
-        const data = await fetchHeroContent();
+        const data = await fetchHeroContent(); // already includes normalized type
         setMedia(data);
       } catch (err) {
         console.error("❌ Error fetching hero content:", err);
       }
     };
+
     fetchHero();
   }, []);
 
@@ -32,10 +32,12 @@ export default function Banner() {
 
   const thumbnailToUse = media.thumbnail?.startsWith("http")
     ? media.thumbnail
+    : media.thumbnail_url_s3?.startsWith("http")
+    ? media.thumbnail_url_s3
     : "/fallback.jpg";
 
   const handlePlay = () => {
-    const { type, id } = media || {};
+    const { type, id } = media;
     if (!type || !id) return;
 
     let path = "";
