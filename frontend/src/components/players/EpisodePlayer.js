@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { getEpisodeContextById } from "@/utils";
 import Hls from "hls.js";
 import { ArrowLeft, SkipBack, SkipForward } from "lucide-react";
-import WatchProgressHandler from "@/components/watch-progress-handle";
+// import WatchProgressHandler from "@/components/watch-progress-handle";
 
 export default function EpisodePlayer({
   episode,
@@ -197,7 +197,7 @@ useEffect(() => {
         poster={poster || episode.thumbnail_url_s3}
         className="w-full h-full object-contain bg-black"
       >
-        {uid && accountId && (
+        {/* {uid && accountId && (
           <WatchProgressHandler
             uid={uid}
             accountId={accountId}
@@ -206,7 +206,7 @@ useEffect(() => {
             videoRef={videoRef}
             onAutoSkipIntro={() => setCanShowSkipIntro(false)}
           />
-        )}
+        )} */}
         <source
           src={
             (typeof episode.HLS === "string"
