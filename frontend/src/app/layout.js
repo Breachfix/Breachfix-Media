@@ -32,6 +32,7 @@ export default function RootLayout({ children }) {
           <GlobalState>
             {children}
             <SpeedInsights />
+             <Analytics />
           </GlobalState>
         </AuthProvider>
       </body>

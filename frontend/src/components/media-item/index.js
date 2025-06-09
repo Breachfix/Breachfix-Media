@@ -178,7 +178,7 @@ export default function MediaItem({
 
   const type = detectMediaType(media);
   const favoriteIdToUse = media?.movieID;
-  const generalIdToUse = media?.movieID || media?.id || media?._id || null;
+  const generalIdToUse = media?.movieID|| media?.mediaId || media?.id || media?._id || null;
 
   if (!generalIdToUse) {
     console.warn("⚠️ Missing media ID:", media);

@@ -27,12 +27,16 @@ export default function Browse() {
   } = useContext(GlobalContext);
   const { user } = useAuth();
 
-  // Utility to shuffle array
   const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
   useEffect(() => {
     async function getAllMedias() {
-      const [trendingTvShows, trendingMovies, continueWatchingItems, allFavorites] = await Promise.all([
+      const [
+        trendingTvShows,
+        trendingMovies,
+        continueWatchingItems,
+        allFavorites,
+      ] = await Promise.all([
         getTrendingMedias("tv"),
         getTrendingMedias("movie"),
         getContinueWatchingItems(user?.id, loggedInAccount?._id),
@@ -41,25 +45,30 @@ export default function Browse() {
 
       const sections = [];
 
-      // ✅ Continue Watching First
+      // ✅ Add Continue Watching section first
       if (continueWatchingItems?.length > 0) {
+        const formattedContinue = continueWatchingItems.map((item) => ({
+          ...item,
+          id: item.mediaId || item._id || item.id,
+          type: item.type || "movie",
+          addedToFavorites: allFavorites?.some(
+            (fav) => fav.movieID === item.mediaId
+          ),
+        }));
+
         sections.push({
           title: "Continue Watching",
-          medias: continueWatchingItems.map((item) => ({
-            ...item,
-            type: item.type || "movie",
-            addedToFavorites: allFavorites?.some((fav) => fav.movieID === item.mediaId),
-          })),
+          medias: formattedContinue,
         });
       }
 
-      // 🟦 Build Mixed Content Layers with Sorting Variants
+      // 🔄 Define additional media layers
       const mixedLayers = [
         {
           title: "Trending Movies",
           medias: trendingMovies,
           type: "movie",
-          sort: (arr) => arr, // no sort
+          sort: (arr) => arr,
         },
         {
           title: "Trending TV Shows",
@@ -79,15 +88,12 @@ export default function Browse() {
           type: "tv",
           sort: (arr) => [...arr].reverse(),
         },
-        
         {
           title: "Top Rated Movies",
           medias: trendingMovies,
           type: "movie",
           sort: shuffle,
         },
-        
-        
         {
           title: "Top Rated TV Shows",
           medias: trendingTvShows,
@@ -96,14 +102,15 @@ export default function Browse() {
         },
       ];
 
-      // 🔁 Process each layer and assign favorites
       for (const layer of mixedLayers) {
-        const sortedMedias = layer.sort(layer.medias).map((media) => ({
+        const sorted = layer.sort(layer.medias).map((media) => ({
           ...media,
           type: layer.type,
-          addedToFavorites: allFavorites?.some((fav) => fav.movieID === media.id),
+          addedToFavorites: allFavorites?.some(
+            (fav) => fav.movieID === media.id
+          ),
         }));
-        sections.push({ title: layer.title, medias: sortedMedias });
+        sections.push({ title: layer.title, medias: sorted });
       }
 
       setMediaData(sections);

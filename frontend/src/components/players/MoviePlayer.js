@@ -1,10 +1,11 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import { SkipBack, SkipForward } from "lucide-react";
-import { getNextPrevMediaByGenre } from "@/utils"; // Ensure this import is correct
-import WatchProgressHandler from "@/components/watch-progress-handle";
+import { getNextPrevMediaByGenre } from "@/utils";
+import WatchProgressHandler from "@/components/WatchProgressHandler";
 
 export default function MoviePlayer({
   hlsUrl,
@@ -13,31 +14,33 @@ export default function MoviePlayer({
   prevMovieId: propPrevMovieId,
   onSkipIntro,
   onNavigate,
-  movie, // add this if you're using `movie` inside useEffect
+  movie,
+  mediaId, type 
 }) {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
+
   const [awaitingPlay, setAwaitingPlay] = useState(false);
   const [hovering, setHovering] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [canShowSkipIntro, setCanShowSkipIntro] = useState(true);
-  const hideControlsTimeout = useRef(null);
+  const [resumeTime, setResumeTime] = useState(null);
+  const [isMetadataLoaded, setIsMetadataLoaded] = useState(false);
+  const [hlsReady, setHlsReady] = useState(false);
 
   const [nextId, setNextId] = useState(propNextMovieId || null);
   const [prevId, setPrevId] = useState(propPrevMovieId || null);
-  const [uid, setUid] = useState(null);
   const [accountId, setAccountId] = useState(null);
 
+  const hideControlsTimeout = useRef(null);
+
+  // ✅ Load accountId
   useEffect(() => {
-    const userId = localStorage.getItem("userId");
     const acc = JSON.parse(sessionStorage.getItem("loggedInAccount"));
-    if (userId && acc?._id) {
-      setUid(userId);
-      setAccountId(acc._id);
-    }
+    if (acc?._id) setAccountId(acc._id);
   }, []);
 
-  // 🧠 Load and play HLS video
+  // ✅ Setup HLS player
   useEffect(() => {
     if (!hlsUrl || !videoRef.current) return;
 
@@ -48,12 +51,7 @@ export default function MoviePlayer({
     hls.attachMedia(video);
 
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      setTimeout(() => {
-        video.play().catch((err) => {
-          console.warn("⚠️ Auto-play failed", err);
-          setAwaitingPlay(true);
-        });
-      }, 100);
+      setHlsReady(true);
     });
 
     hls.on(Hls.Events.ERROR, (event, data) => {
@@ -76,7 +74,22 @@ export default function MoviePlayer({
     return () => hls.destroy();
   }, [hlsUrl]);
 
-  // 🧠 Manage hover/touch to show controls
+  // ✅ Resume logic: play only when all are ready
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !hlsReady || !isMetadataLoaded) return;
+
+    if (resumeTime !== null) {
+      video.currentTime = resumeTime;
+    }
+
+    video.play().catch((err) => {
+      console.warn("⚠️ Auto-play failed", err);
+      setAwaitingPlay(true);
+    });
+  }, [resumeTime, hlsReady, isMetadataLoaded]);
+
+  // ✅ Interaction controls
   useEffect(() => {
     const handleInteraction = () => {
       setHovering(true);
@@ -98,7 +111,7 @@ export default function MoviePlayer({
     };
   }, []);
 
-  // 🧠 Hide Skip Intro after 60 seconds
+  // ✅ Skip intro logic
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -110,32 +123,32 @@ export default function MoviePlayer({
     video.addEventListener("timeupdate", handleTimeUpdate);
     return () => video.removeEventListener("timeupdate", handleTimeUpdate);
   }, []);
+
+  // ✅ Next/Prev
   useEffect(() => {
-  const fetchRelated = async () => {
-    if (!movie?.genre || !movie?._id) return;
+    const fetchRelated = async () => {
+      if (!movie?.genre || !movie?._id) return;
+      const { next, prev } = await getNextPrevMediaByGenre("movie", movie.genre, movie._id);
+      setNextId(next);
+      setPrevId(prev);
+    };
 
-    const { next, prev } = await getNextPrevMediaByGenre("movie", movie.genre, movie._id);
-    setNextMovieId(next);
-    setPrevMovieId(prev);
-  };
-
-  fetchRelated();
-}, [movie]);
+    fetchRelated();
+  }, [movie]);
 
   return (
     <div className="relative w-full h-screen bg-black text-white">
-     
-      {/* 🎥 Video */}
       <video
         ref={videoRef}
         controls
         autoPlay
         playsInline
         poster={poster || ""}
+        onLoadedMetadata={() => setIsMetadataLoaded(true)} // ✅ Needed for resume
         className="w-full h-full object-contain"
       />
 
-      {/* ▶ Tap to Play overlay */}
+      {/* Tap to play fallback */}
       {awaitingPlay && (
         <div
           className="absolute inset-0 bg-black/80 flex items-center justify-center z-40 cursor-pointer"
@@ -149,7 +162,7 @@ export default function MoviePlayer({
         </div>
       )}
 
-      {/* ⏭ Skip Intro */}
+      {/* Skip Intro */}
       {hovering && showControls && canShowSkipIntro && (
         <button
           onClick={() => {
@@ -161,20 +174,27 @@ export default function MoviePlayer({
           ⏭ Skip Intro
         </button>
       )}
-         {/* Watch Progress Handler
-      {uid && accountId && (
-        <WatchProgressHandler
-  uid={uid}
-  accountId={accountId}
-  mediaId={movie?._id}
-  type="movie"
-  videoRef={videoRef}
-  onAutoSkipIntro={() => setCanShowSkipIntro(false)} // 👈 optional
-/>
-      )} */}
 
-      {/* ⏮⏭ Previous / Next */}
-      {hovering && showControls &&  (
+      {/* Watch Progress Handler */}
+      {mediaId && type && accountId && (
+        <WatchProgressHandler
+          accountId={accountId}
+          mediaId={mediaId}
+          type={type}
+          videoRef={videoRef}
+          onAutoSkipIntro={() => setCanShowSkipIntro(false)}
+          onLoadProgress={(progress) => {
+            if (progress?.currentTime > 0) {
+              setResumeTime(progress.currentTime);
+            } else {
+              setShouldPlay(true);
+            }
+          }}
+        />
+      )}
+
+      {/* Prev/Next Navigation */}
+      {hovering && showControls && (
         <div className="absolute bottom-8 w-full flex justify-center gap-4 z-20">
           {prevId && (
             <button

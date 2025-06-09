@@ -1,4 +1,5 @@
 const nextProdConfig = {
+  
   images: {
     remotePatterns: [
       {

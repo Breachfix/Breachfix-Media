@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 
 const WatchProgressSchema = new mongoose.Schema(
   {
-    userId: { type: String, required: true }, // External user ID
     accountId: { type: String, required: true }, // Sub-profile account
     mediaId: { type: String, required: true }, // Movie or episode ID
     mediaType: { type: String, enum: ["movie", "tv", "episode"], required: true },

@@ -1,85 +1,95 @@
-import api from "@/lib/api";
 
-// ✅ Save watch progress
-export const saveWatchProgress = async ({
-  uid,
-  accountId,
-  mediaId,
-  type,
-  progressInSeconds,
-  duration,
-}) => {
+// ✅ Get all watch progress for an account
+export const getAllWatchProgress = async (accountId) => {
   try {
-    const res = await api.post("/watch-progress", {
-      userId: uid,
-      accountId,
-      mediaId,
-      mediaType: type,
-      currentTime: progressInSeconds,
-      duration,
-    });
-
-    return res.data;
-  } catch (error) {
-    console.error("❌ Error saving watch progress:", error);
-    return { success: false, message: error.message };
-  }
-};
-
-// ✅ Fetch all watch progress by uid
-export const getAllWatchProgress = async (uid) => {
-  try {
-    const res = await api.get("/watch-progress/get-all", {
-      params: { uid },
-    });
-
-    if (res.data.success) {
-      console.log("📽️ All progress:", res.data.data);
-      return res.data.data;
-    } else {
-      console.warn("⚠️ No watch progress found");
-      return [];
-    }
-  } catch (error) {
-    console.error("❌ Error fetching all watch progress:", error);
+    const res = await fetch(`/api/watch-progress/get-all?accountId=${accountId}`);
+    const data = await res.json();
+    console.log("📦 All Watch Progress:", data);
+    return data.success ? data.data : [];
+  } catch (err) {
+    console.error("❌ Get all progress failed:", err);
     return [];
   }
 };
 
-// ✅ Get progress for a single media (for resuming video)
-export const getSingleWatchProgress = async ({ uid, accountId, mediaId }) => {
+// ✅ Get single watch progress
+export const getSingleWatchProgress = async ({ accountId, mediaId }) => {
   try {
-    const res = await api.get("/watch-progress/get", {
-      params: { uid, accountId, mediaId },
-    });
-
-    if (res.data.success) {
-      return res.data.progressInSeconds;
-    } else {
-      console.warn("⚠️ No progress found for this media");
-      return 0;
-    }
-  } catch (error) {
-    console.error("❌ Error fetching single watch progress:", error);
+    const res = await fetch(`/api/watch-progress/get?accountId=${accountId}&mediaId=${mediaId}`);
+    const data = await res.json();
+    console.log("🎯 Single Watch Progress:", data);
+    return data.success ? data.progressInSeconds : 0;
+  } catch (err) {
+    console.error("❌ Get single progress failed:", err);
     return 0;
   }
 };
 
-// ✅ Fetch Continue Watching list (sorted + enriched)
-export const getContinueWatchingItems = async (uid, accountId) => {
+// ✅ Get "Continue Watching" items
+export const getContinueWatchingItems = async (accountId) => {
   try {
-    const res = await api.get("/watch-progress/continue", {
-      params: { uid, accountId },
+    const res = await fetch(`/api/watch-progress/continue?accountId=${accountId}`);
+    const data = await res.json();
+    console.log("▶️ Continue Watching Items:", data);
+    return data.success ? data.data : [];
+  } catch (err) {
+    console.error("❌ Continue watching failed:", err);
+    return [];
+  }
+};
+
+
+
+// ✅ Save watch progress
+export const saveWatchProgress = async ({
+  accountId,
+  mediaId,
+  progressInSeconds,
+  type, // ✅ Add this
+}) => {
+  console.log("🛠️ Trying to save progress...", {
+    accountId,
+    mediaId,
+    type,
+    progressInSeconds,
+  });
+
+  if (!accountId || !mediaId) {
+    console.warn("⛔ Missing accountId or mediaId. Skipping save.", {
+      accountId,
+      mediaId,
+    });
+    return;
+  }
+
+  try {
+    console.log("💾 Saving progress:", {
+      accountId,
+      mediaId,
+      type,
+      progressInSeconds,
     });
 
-    if (res.data.success) {
-      return res.data.data;
-    } else {
-      console.warn("⚠️ No continue watching items found");
-      return [];
+    const res = await fetch("/api/watch-progress/save", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ accountId, mediaId, type, progressInSeconds }),
+    });
+
+    const text = await res.text();
+    try {
+      const data = JSON.parse(text);
+      console.log("✅ Save Watch Progress Response:", data);
+      return data.success;
+    } catch (parseErr) {
+      console.error("❌ JSON parse error (did the server return HTML?):", parseErr);
+      console.error("📄 Raw response:", text);
+      return false;
     }
-  } catch (error) {
-    console.error("❌ Failed to fetch continue watching items:", error);
-    return [];
+  } catch (err) {
+    console.error("❌ Failed to save progress:", err);
+    return false;
   }
 };

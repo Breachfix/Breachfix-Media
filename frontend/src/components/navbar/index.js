@@ -58,9 +58,8 @@ export default function Navbar() {
     {
       id: "continue-watching",
       title: "Continue Watching",
-      path:
-        user?.id && loggedInAccount?._id
-          ? `/continue-watching/${user.id}/${loggedInAccount._id}`
+      path: loggedInAccount?._id
+          ? `/watch-progress/${loggedInAccount?._id}`
           : "#",
     },
   ];
@@ -127,6 +126,7 @@ export default function Navbar() {
                   <li
                     key={item.id}
                     onClick={() => {
+                      if (item.path === "#") return;
                       setPageLoader(true);
                       router.push(item.path);
                       setSearchQuery("");

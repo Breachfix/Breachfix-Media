@@ -1,4 +1,7 @@
 const nextDevConfig = {
+  experimental: {
+    instrumentationHook: false, // 👈 disables _vercel/speed-insights in dev
+  },
   images: {
     remotePatterns: [
       {

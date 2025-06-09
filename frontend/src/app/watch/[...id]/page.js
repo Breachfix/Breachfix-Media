@@ -37,6 +37,7 @@ useEffect(() => {
         : rawId;
 
       const content = await fetchWatchContent(type, mediaId); // ✅ Will auto-detect movieID/etc inside
+      console.log("🎬 fetchWatchContent result:", content);
 
       setMedia({
         ...content,
@@ -114,6 +115,7 @@ useEffect(() => {
       </div>
     );
   };
+  console.log("🔥 WATCHPAGE MEDIA:", media);
 
   return (
     <RequireAuth>
@@ -142,6 +144,8 @@ useEffect(() => {
   tvShowId={media.tvShowId}
   seasonNumber={media.seasonNumber}
   episodeNumber={media.episodeNumber}
+  type={media.type} // ✅ ADD THIS
+  mediaId={media._id} // ✅ A
 />
         )}
       </motion.div>

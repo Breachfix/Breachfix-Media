@@ -354,7 +354,7 @@ export const fetchWatchContent = async (type, idOrMedia) => {
   try {
     const id =
       typeof idOrMedia === "object"
-        ? idOrMedia.movieID || idOrMedia.episodeID || idOrMedia.id || idOrMedia._id
+        ? idOrMedia.movieID || idOrMedia.mediaId || idOrMedia.id || idOrMedia._id
         : idOrMedia;
 
     if (!id) throw new Error("❌ Invalid media ID provided.");
