@@ -6,6 +6,7 @@ import {
   PlusIcon,
   ChevronDownIcon,
   CheckIcon,
+  MinusIcon,
 } from "@heroicons/react/24/outline";
 import { usePathname, useRouter } from "next/navigation";
 import { useContext } from "react";
@@ -15,6 +16,7 @@ import { getAllfavorites } from "@/utils";
 
 export default function MediaItem({
   media,
+  type,
   searchView = false,
   similarMovieView = false,
   listView = false,
@@ -51,7 +53,8 @@ export default function MediaItem({
 
   function detectMediaType(item) {
     if (item?.type) return item.type;
-    if (item?.seasonNumber && item?.episodeNumber) return "episode";
+    if (item?.mediaType) return item.mediaType;
+    if (item?.seasonNumber !== undefined && item?.episodeNumber !== undefined) return "episode";
     if (item?.seasons) return "tv";
     return "movie";
   }
@@ -87,9 +90,7 @@ export default function MediaItem({
 
     if (detectedType === "episode" && (!finalTitle || !finalDescription)) {
       try {
-        const episodeDetails = await fetch(`/api/v1/episodes/${id}`).then((res) =>
-          res.json()
-        );
+        const episodeDetails = await fetch(`/api/v1/episodes/${id}`).then((res) => res.json());
         finalTitle = episodeDetails?.title || "Untitled Episode";
         finalDescription = episodeDetails?.description || "No description available";
         imageUrl =
@@ -154,8 +155,17 @@ export default function MediaItem({
     const res = await fetch(`/api/favorites/remove-favorite?id=${item._id}`, {
       method: "DELETE",
     });
+
     const data = await res.json();
-    if (data.success) updateFavorites();
+    if (data.success) {
+      setFavorites((prev) => prev.filter((fav) => fav._id !== item._id));
+      setMediaData((prev) =>
+        prev.map((section) => ({
+          ...section,
+          medias: section.medias.filter((m) => m._id !== item._id),
+        }))
+      );
+    }
   }
 
   const isValidImage = (url) => typeof url === "string" && url.startsWith("http");
@@ -176,9 +186,8 @@ export default function MediaItem({
     isValidImage(media?.backdrop_path) ? media.backdrop_path :
     getThumbnailFallback(media);
 
-  const type = detectMediaType(media);
-  const favoriteIdToUse = media?.movieID;
-  const generalIdToUse = media?.movieID|| media?.mediaId || media?.id || media?._id || null;
+  const detectedType = media?.type || media?.mediaType || detectMediaType(media);
+  const generalIdToUse = media?.movieID || media?.mediaId || media?.id || media?._id || null;
 
   if (!generalIdToUse) {
     console.warn("⚠️ Missing media ID:", media);
@@ -204,14 +213,14 @@ export default function MediaItem({
         <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 bg-black bg-opacity-50 rounded">
           <button
             onClick={() => {
-              if (type === "episode") router.push(`/watch/episode/${generalIdToUse}`);
-              else if (type === "tv") router.push(`/tv/${generalIdToUse}`);
+              if (detectedType === "episode") router.push(`/watch/episode/${generalIdToUse}`);
+              else if (detectedType === "tv") router.push(`/tv/${generalIdToUse}`);
               else router.push(`/watch/movie/${generalIdToUse}`);
             }}
             className="text-white bg-white/20 hover:bg-white/40 text-sm px-4 py-2 rounded-full mb-2"
           >
-            {(type === "tv" && "View Episodes") ||
-              (type === "episode" && "Watch Now") ||
+            {(detectedType === "tv" && "View Episodes") ||
+              (detectedType === "episode" && "Watch Now") ||
               "Watch Now"}
           </button>
 
@@ -225,11 +234,17 @@ export default function MediaItem({
                   : () => handleAddToFavorites(media)
               }
               className={`${
-                media?.addedToFavorites && !listView && "cursor-not-allowed"
-              } cursor-pointer border flex p-2 items-center gap-x-2 rounded-full text-sm font-semibold transition hover:opacity-90 border-white bg-black bg-opacity-70 text-white`}
-            >
+    media?.addedToFavorites && !listView && "cursor-not-allowed"
+  } cursor-pointer border flex p-2 items-center gap-x-2 rounded-full text-sm font-semibold transition hover:opacity-90 ${
+    listView ? "border-red-500 bg-red-700 text-white" : "border-white bg-black bg-opacity-70 text-white"
+  }`}
+               >
               {media?.addedToFavorites ? (
-                <CheckIcon className="h-5 w-5" />
+                listView ? (
+                  <MinusIcon className="h-5 w-5 text-white" />
+                ) : (
+                  <CheckIcon className="h-5 w-5" />
+                )
               ) : (
                 <PlusIcon className="h-5 w-5" />
               )}
@@ -237,12 +252,8 @@ export default function MediaItem({
 
             <button
               onClick={() => {
-                if (!generalIdToUse) {
-                  console.warn("⛔ No ID found for media", media);
-                  return;
-                }
                 const mediaID = media.movieID || media._id || media.id;
-                setCurrentMediaInfoIdAndType({ type, id: mediaID });
+                setCurrentMediaInfoIdAndType({ type: detectedType, id: mediaID });
                 setShowDetailsPopup(true);
               }}
               className="cursor-pointer p-2 border flex items-center gap-x-2 rounded-full text-sm font-semibold transition hover:opacity-90 border-white bg-black bg-opacity-70 text-white"

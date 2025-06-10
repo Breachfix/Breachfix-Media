@@ -70,14 +70,22 @@ export const AuthProvider = ({ children }) => {
     window.location.href = "/auth/login";
   };
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      loadUser();
+useEffect(() => {
+  const token = localStorage.getItem("authToken");
+  if (token) {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const isExpired = payload.exp * 1000 < Date.now();
+
+    if (isExpired) {
+      console.warn("⏰ Token expired, logging out...");
+      handleLogout();
     } else {
-      setAuthLoading(false);
+      loadUser();
     }
-  }, []);
+  } else {
+    setAuthLoading(false);
+  }
+}, []);
 
   return (
     <AuthContext.Provider

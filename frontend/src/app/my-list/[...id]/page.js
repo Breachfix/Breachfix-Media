@@ -12,6 +12,7 @@ import UnauthPage from "@/components/unauth-page";
 import { useParams } from "next/navigation";
 import RequireAuth from "@/components/RequireAuth";
 import ManageAccounts from "@mui/icons-material/ManageAccounts";
+import MediaRow from "@/components/media-row";
 
 export default function MyList() {
   const _params = useParams();
@@ -118,11 +119,11 @@ export default function MyList() {
         transition={{ duration: 0.4 }}
       >
         <Navbar />
-        <div className="mt-[100px] space-y-0.5 md:space-y-2 px-4">
+        <div className="mt-12 space-y-0.5 md:space-y-2 px-4">
           <h2 className="cursor-pointer text-sm font-semibold text-[#e5e5e5] transition-colors duration-200 hover:text-white md:text-2xl">
             My List
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-2">
+          <div className="grid grid-cols-5 gap-3 items-center scrollbar-hide md:p-2">
             {favorites && favorites.length > 0 ? (
               favorites.map((item, index) => (
                 <MediaItem

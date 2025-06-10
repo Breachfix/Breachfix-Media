@@ -28,25 +28,30 @@ export default function ContinueWatchingPage() {
     }
 
     const fetchItems = async () => {
-      try {
-        console.log("📡 Fetching continue watching for accountId:", accountId);
-        const data = await getContinueWatchingItems(accountId);
-        console.log("🎬 Continue watching data:", data);
+  try {
+    console.log("📡 Fetching continue watching for accountId:", accountId);
+    const data = await getContinueWatchingItems(accountId);
+    console.log("🎬 Continue watching data:", data);
 
-        // ✅ Normalize thumbnail field
-        const normalizedData = (data || []).map(item => ({
-          ...item,
-          thumbnail_url_s3: item.thumbnail, // use for MediaItem fallback
-        }));
+    const normalizedData = (data || []).map(item => {
+      let adjustedType = item.mediaType;
+      if (item.mediaType === "tv") adjustedType = "episode"; // 🛠️ normalize to episode
 
-        setItems(normalizedData);
-        setFilteredItems(normalizedData);
-      } catch (err) {
-        console.error("❌ Error fetching continue watching items:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      return {
+        ...item,
+        mediaType: adjustedType,
+        thumbnail_url_s3: item.thumbnail_url_s3,
+      };
+    });
+
+    setItems(normalizedData);
+    setFilteredItems(normalizedData);
+  } catch (err) {
+    console.error("❌ Error fetching continue watching items:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
     fetchItems();
   }, [accountId]);
@@ -68,8 +73,8 @@ export default function ContinueWatchingPage() {
           <button onClick={() => filter("movie")} className="bg-white text-black px-4 py-2 rounded hover:bg-gray-300">
             Movies
           </button>
-          <button onClick={() => filter("tv")} className="bg-white text-black px-4 py-2 rounded hover:bg-gray-300">
-            TV Shows
+          <button onClick={() => filter("episode")} className="bg-white text-black px-4 py-2 rounded hover:bg-gray-300">
+            Episodes
           </button>
           <button onClick={() => filter("all")} className="bg-white text-black px-4 py-2 rounded hover:bg-gray-300">
             All
@@ -81,7 +86,8 @@ export default function ContinueWatchingPage() {
             You haven’t started watching anything yet.
           </p>
         ) : (
-          <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="mt-12 space-y-0.5 md:space-y-2 px-4">
+            <div className="grid grid-cols-5 gap-3 items-center scrollbar-hide md:p-2">
             {filteredItems.map((item) => (
               <div key={`${item.mediaId}-${item.accountId}`}>
                 <MediaItem media={item} listView />
@@ -90,6 +96,7 @@ export default function ContinueWatchingPage() {
                 </p>
               </div>
             ))}
+          </div>
           </div>
         )}
       </main>

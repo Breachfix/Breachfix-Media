@@ -8,6 +8,7 @@ import CommonLayout from "@/components/common-layout";
 import UnauthPage from "@/components/unauth-page";
 import RequireAuth from "@/components/RequireAuth";
 import ManageAccounts from "@mui/icons-material/ManageAccounts";
+import MediaRow from "@/components/media-row";
 
 import {
   getTrendingMedias,
@@ -24,7 +25,12 @@ export default function Browse() {
     setMediaData,
     setPageLoader,
     pageLoader,
+    favorites,
+    setFavorites,
+    setCurrentMediaInfoIdAndType,
+    setShowDetailsPopup,
   } = useContext(GlobalContext);
+
   const { user } = useAuth();
 
   const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
@@ -43,9 +49,19 @@ export default function Browse() {
         getAllfavorites(user?.id, loggedInAccount?._id),
       ]);
 
+      setFavorites(
+        allFavorites.map((item) => ({
+          ...item,
+          movieID:
+            typeof item.movieID === "object" && item.movieID?.$oid
+              ? item.movieID.$oid
+              : item.movieID,
+          addedToFavorites: true,
+        }))
+      );
+
       const sections = [];
 
-      // ✅ Add Continue Watching section first
       if (continueWatchingItems?.length > 0) {
         const formattedContinue = continueWatchingItems.map((item) => ({
           ...item,
@@ -54,6 +70,12 @@ export default function Browse() {
           addedToFavorites: allFavorites?.some(
             (fav) => fav.movieID === item.mediaId
           ),
+          onClick: () => {
+            const id = item.mediaId || item.id || item._id;
+            const type = item.type || "movie";
+            setCurrentMediaInfoIdAndType({ id, type });
+            setShowDetailsPopup(true);
+          },
         }));
 
         sections.push({
@@ -62,7 +84,40 @@ export default function Browse() {
         });
       }
 
-      // 🔄 Define additional media layers
+      if (allFavorites?.length > 0) {
+        const formattedFavorites = allFavorites.map((item) => {
+          const id = item.movieID || item.id || item._id;
+          const type =
+            item.type ||
+            (item.seasons ? "tv" : item.episodeNumber ? "episode" : "movie");
+
+          return {
+            ...item,
+            id,
+            type,
+            addedToFavorites: true,
+            onClick: async () => {
+              try {
+                await fetch(`/api/favorites/remove-favorite?id=${item._id}`, {
+                  method: "DELETE",
+                });
+
+                setFavorites((prev) =>
+                  prev.filter((fav) => fav.movieID !== id && fav._id !== id)
+                );
+              } catch (err) {
+                console.error("❌ Failed to remove favorite:", err);
+              }
+            },
+          };
+        });
+
+        sections.push({
+          title: "My List",
+          medias: formattedFavorites,
+        });
+      }
+
       const mixedLayers = [
         {
           title: "Trending Movies",
@@ -118,6 +173,7 @@ export default function Browse() {
     }
 
     if (user?.id && loggedInAccount?._id) {
+      setPageLoader(true);
       getAllMedias();
     }
   }, [user?.id, loggedInAccount?._id]);

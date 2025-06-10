@@ -16,6 +16,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// ✅ Global 401 handler – redirect to login if token expired or unauthorized
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      sessionStorage.clear();
+      localStorage.clear();
+      window.location.href = "/auth/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
+
 export default api;
 // -----------------
 // Authentication

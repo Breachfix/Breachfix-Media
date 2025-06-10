@@ -3,6 +3,8 @@
 import MediaItem from "../media-item";
 
 export default function MediaRow({ title, medias }) {
+  const isListView = title?.toLowerCase() === "my list";
+
   return (
     <div className="space-y-2 px-4">
       <h2 className="text-sm font-semibold text-[#e5e5e5] hover:text-white md:text-2xl">
@@ -15,8 +17,9 @@ export default function MediaRow({ title, medias }) {
             <div
               key={`${mediaItem.id || mediaItem._id || "media"}-${index}`}
               className="w-full md:w-[260px] flex-shrink-0"
+              onClick={() => mediaItem.onClick?.()}
             >
-              <MediaItem title={title} media={mediaItem} />
+              <MediaItem title={title} media={mediaItem} listView={isListView} />
             </div>
           ))}
       </div>
