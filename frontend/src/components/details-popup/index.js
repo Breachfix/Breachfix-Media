@@ -146,6 +146,7 @@ export default function DetailsPopup({ show, setShow }) {
               height="100%"
               style={{ position: "absolute", top: "0", left: "0" }}
               playing
+              muted 
               controls
             />
             <div className="absolute bottom-[4.25rem] flex w-full items-center justify-between pl-[1.5rem]">

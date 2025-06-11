@@ -142,7 +142,8 @@ export default function MoviePlayer({
         ref={videoRef}
         controls
         autoPlay
-        playsInline
+        muted  // ✅ Add this to allow autoplay on Chrome
+        playsInline 
         poster={poster || ""}
         onLoadedMetadata={() => setIsMetadataLoaded(true)} // ✅ Needed for resume
         className="w-full h-full object-contain"

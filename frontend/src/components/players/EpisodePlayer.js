@@ -472,6 +472,8 @@ export default function EpisodePlayer({
       <video
         ref={videoRef}
         controls
+        muted  // ✅ Add this to allow autoplay on Chrome
+        playsInline 
         poster={poster || episode.thumbnail_url_s3}
         className="w-full h-full object-contain bg-black"
       >
