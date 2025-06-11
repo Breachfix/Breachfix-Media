@@ -256,7 +256,11 @@ export const getTVorMovieDetailsByID = async (type, id) => {
         data.video_url_s3 ||
         data.transcodedVideo ||
         data.trailerUrl,
-      poster_path: data.poster || data.thumbnailUrl,
+      poster_path: 
+          data.thumbnail_url_s3 || // ✅ Add this line
+          data.poster || 
+          data.posterUrl ||  // ✅ Add this line
+          data.thumbnailUrl,
       backdrop_path: data.backdrop,
     };
   } catch (error) {

@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getContinueWatchingItems } from "@/utils/watchProgressAPI";
+import { getTVorMovieDetailsByID } from "@/utils"; // <-- ✅ import your existing media details fetcher
 import Navbar from "@/components/navbar";
 import CircleLoader from "@/components/circle-loader";
-import Link from "next/link";
-import MediaItem from "@/components/media-item"; // Make sure this is imported
+import MediaItem from "@/components/media-item";
 
 function formatWatchTime(seconds) {
   const mins = Math.floor(seconds / 60);
@@ -28,37 +28,49 @@ export default function ContinueWatchingPage() {
     }
 
     const fetchItems = async () => {
-  try {
-    console.log("📡 Fetching continue watching for accountId:", accountId);
-    const data = await getContinueWatchingItems(accountId);
-    console.log("🎬 Continue watching data:", data);
+      try {
+        console.log("📡 Fetching continue watching for accountId:", accountId);
+        const data = await getContinueWatchingItems(accountId);
+        console.log("🎬 Continue watching raw data:", data);
 
-    const normalizedData = (data || []).map(item => {
-      let adjustedType = item.mediaType;
-      if (item.mediaType === "tv") adjustedType = "episode"; // 🛠️ normalize to episode
+        // enrich items one by one with full details
+        const enriched = await Promise.all(
+          data.map(async (item) => {
+            const type = item.mediaType === "tv" ? "episode" : item.mediaType;
+            const id = item.mediaId || item._id || item.id;
+            const details = await getTVorMovieDetailsByID(type, id);
 
-      return {
-        ...item,
-        mediaType: adjustedType,
-        thumbnail_url_s3: item.thumbnail_url_s3,
-      };
-    });
+            return {
+              ...item,
+              type,
+              id,
+              thumbnail_url_s3:
+                details?.poster_path ||
+                details?.thumbnailUrl ||
+                details?.backdrop_path ||
+                "",
 
-    setItems(normalizedData);
-    setFilteredItems(normalizedData);
-  } catch (err) {
-    console.error("❌ Error fetching continue watching items:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+              enrichedTitle: details?.title || item.title,
+              progressInSeconds: item.progressInSeconds || 0,
+            };
+          })
+        );
+
+        setItems(enriched);
+        setFilteredItems(enriched);
+      } catch (err) {
+        console.error("❌ Error fetching enriched continue watching items:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     fetchItems();
   }, [accountId]);
 
   const filter = (type) => {
     if (type === "all") return setFilteredItems(items);
-    setFilteredItems(items.filter((i) => i.mediaType === type));
+    setFilteredItems(items.filter((i) => i.type === type));
   };
 
   if (loading) return <CircleLoader />;
@@ -86,17 +98,15 @@ export default function ContinueWatchingPage() {
             You haven’t started watching anything yet.
           </p>
         ) : (
-          <div className="mt-12 space-y-0.5 md:space-y-2 px-4">
-            <div className="grid grid-cols-5 gap-3 items-center scrollbar-hide md:p-2">
+          <div className="mt-12 grid grid-cols-5 gap-3 items-center scrollbar-hide md:p-2">
             {filteredItems.map((item) => (
-              <div key={`${item.mediaId}-${item.accountId}`}>
+              <div key={`${item.id}-${item.accountId}`}>
                 <MediaItem media={item} listView />
                 <p className="text-sm text-gray-400 mt-2">
                   {formatWatchTime(item.progressInSeconds)} watched
                 </p>
               </div>
             ))}
-          </div>
           </div>
         )}
       </main>
