@@ -354,6 +354,90 @@ export const fetchHeroContent = async () => {
  * @param {string} id 
  * @returns full media object with title, videoUrl, HLS, etc.
  */
+// export const fetchWatchContent = async (type, idOrMedia) => {
+//   try {
+//     const id =
+//       typeof idOrMedia === "object"
+//         ? idOrMedia.movieID || idOrMedia.mediaId || idOrMedia.id || idOrMedia._id
+//         : idOrMedia;
+
+//     if (!id) throw new Error("❌ Invalid media ID provided.");
+
+//     const response = await watch.get(`/${type}/${id}`);
+//     if (!response.data.success) throw new Error("⚠️ Failed to retrieve video details");
+
+//     const content = response.data;
+//     let videoUrl = null;
+//     let HLS = {};
+//     let nextEpisodeId = null;
+//     let prevEpisodeId = null;
+
+//     if (type === "tvShow") {
+//       const firstEp = content.seasons?.[0]?.episodes?.[0];
+//       videoUrl =
+//         content.previewVideoUrl ||
+//         firstEp?.HLS?.master ||
+//         firstEp?.videoUrl ||
+//         null;
+//       HLS = firstEp?.HLS || {};
+//     }
+
+//     if (type === "movie") {
+//       videoUrl = content.HLS?.master || content.videoUrl || null;
+//       HLS = { master: content.HLS?.master || null };
+//     }
+
+//     if (type === "episode") {
+//       videoUrl =
+//         content.HLS?.master ||
+//         content.videoUrl ||
+//         content.transcodedVideo ||
+//         null;
+//       HLS = { master: content.HLS?.master || null };
+
+//       const allEpisodes = Array.isArray(content.seasons)
+//         ? content.seasons.flatMap(season => season.episodes || [])
+//         : [];
+
+//       const currentIndex = allEpisodes.findIndex(ep =>
+//         ep.episodeId === id || ep._id === id
+//       );
+
+//       if (currentIndex !== -1) {
+//         prevEpisodeId = allEpisodes[currentIndex - 1]?.episodeId || null;
+//         nextEpisodeId = allEpisodes[currentIndex + 1]?.episodeId || null;
+//       }
+//     }
+
+//     return {
+//       id: content.id,
+//       type: content.type,
+//       title: content.title,
+//       description: content.description,
+//       duration: content.duration || null,
+//       isFree: content.isFree,
+//       rating: content.rating,
+//       views: content.views,
+//       genres: content.genres || [],  // ✅ ✅ ADDED THIS LINE!
+//       videoUrl,
+//       HLS,
+//       transcodedVideo: content.transcodedVideo || '',
+//       thumbnailUrl: content.thumbnailUrl || '',
+//       trailerUrl: content.trailerUrl || '',
+//       posterUrl: content.posterUrl || '',
+//       pricing: content.pricing || null,
+//       tvShowId: content.tvShowId || null,
+//       seasonNumber: content.season || null,
+//       seasons: content.seasons || [],
+//       nextEpisodeId,
+//       prevEpisodeId,
+//     };
+//   } catch (error) {
+//     console.error("❌ Error fetching watch content:", error);
+//     throw error;
+//   }
+// };
+
 export const fetchWatchContent = async (type, idOrMedia) => {
   try {
     const id =
@@ -367,18 +451,18 @@ export const fetchWatchContent = async (type, idOrMedia) => {
     if (!response.data.success) throw new Error("⚠️ Failed to retrieve video details");
 
     const content = response.data;
+
     let videoUrl = null;
     let HLS = {};
     let nextEpisodeId = null;
     let prevEpisodeId = null;
+    let genres = content.genres || [];
+    let parentTVShow = null;
 
     if (type === "tvShow") {
       const firstEp = content.seasons?.[0]?.episodes?.[0];
       videoUrl =
-        content.previewVideoUrl ||
-        firstEp?.HLS?.master ||
-        firstEp?.videoUrl ||
-        null;
+        content.previewVideoUrl || firstEp?.HLS?.master || firstEp?.videoUrl || null;
       HLS = firstEp?.HLS || {};
     }
 
@@ -388,11 +472,7 @@ export const fetchWatchContent = async (type, idOrMedia) => {
     }
 
     if (type === "episode") {
-      videoUrl =
-        content.HLS?.master ||
-        content.videoUrl ||
-        content.transcodedVideo ||
-        null;
+      videoUrl = content.HLS?.master || content.videoUrl || content.transcodedVideo || null;
       HLS = { master: content.HLS?.master || null };
 
       const allEpisodes = Array.isArray(content.seasons)
@@ -407,6 +487,15 @@ export const fetchWatchContent = async (type, idOrMedia) => {
         prevEpisodeId = allEpisodes[currentIndex - 1]?.episodeId || null;
         nextEpisodeId = allEpisodes[currentIndex + 1]?.episodeId || null;
       }
+
+      // Inherit genres from TVShow for episodes
+      if (content.tvShowId) {
+        parentTVShow = {
+          id: content.tvShowId?._id || null,
+          genres: content.tvShowId?.genres || []
+        };
+        if (!genres.length) genres = parentTVShow.genres;
+      }
     }
 
     return {
@@ -418,6 +507,8 @@ export const fetchWatchContent = async (type, idOrMedia) => {
       isFree: content.isFree,
       rating: content.rating,
       views: content.views,
+      genres,
+      parentTVShow,
       videoUrl,
       HLS,
       transcodedVideo: content.transcodedVideo || '',
@@ -436,7 +527,6 @@ export const fetchWatchContent = async (type, idOrMedia) => {
     throw error;
   }
 };
-
 export const getEpisodeContextById = async (episodeId) => {
   try {
     const response = await episode.get(`/episodes/${episodeId}/context`);

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getContinueWatchingItems } from "@/utils/watchProgressAPI";
-import { getTVorMovieDetailsByID } from "@/utils"; // <-- ✅ import your existing media details fetcher
 import Navbar from "@/components/navbar";
 import CircleLoader from "@/components/circle-loader";
 import MediaItem from "@/components/media-item";
+import { GlobalContext } from "@/context";
+import { fetchWatchContent } from "@/utils";  // ✅ ADD THIS LINE
 
 function formatWatchTime(seconds) {
   const mins = Math.floor(seconds / 60);
@@ -21,49 +22,42 @@ export default function ContinueWatchingPage() {
   const { accountId } = useParams();
   const router = useRouter();
 
+  const { setCurrentMediaInfoIdAndType, setShowDetailsPopup } = useContext(GlobalContext);
+
   useEffect(() => {
     if (!accountId) {
       router.push("/auth/login");
       return;
     }
 
-    const fetchItems = async () => {
+const fetchItems = async () => {
+  try {
+    const data = await getContinueWatchingItems(accountId);
+    const enriched = await Promise.all(data.map(async (item) => {
+      const type = item.mediaType === "tv" ? "episode" : item.mediaType;
+      const id = item.mediaId || item._id || item.id;
+
       try {
-        console.log("📡 Fetching continue watching for accountId:", accountId);
-        const data = await getContinueWatchingItems(accountId);
-        console.log("🎬 Continue watching raw data:", data);
-
-        // enrich items one by one with full details
-        const enriched = await Promise.all(
-          data.map(async (item) => {
-            const type = item.mediaType === "tv" ? "episode" : item.mediaType;
-            const id = item.mediaId || item._id || item.id;
-            const details = await getTVorMovieDetailsByID(type, id);
-
-            return {
-              ...item,
-              type,
-              id,
-              thumbnail_url_s3:
-                details?.poster_path ||
-                details?.thumbnailUrl ||
-                details?.backdrop_path ||
-                "",
-
-              enrichedTitle: details?.title || item.title,
-              progressInSeconds: item.progressInSeconds || 0,
-            };
-          })
-        );
-
-        setItems(enriched);
-        setFilteredItems(enriched);
-      } catch (err) {
-        console.error("❌ Error fetching enriched continue watching items:", err);
-      } finally {
-        setLoading(false);
+        const fullContent = await fetchWatchContent(type, id);
+        return {
+          ...fullContent,  // inject full media data
+          progressInSeconds: item.progressInSeconds || 0,
+        };
+      } catch (fetchErr) {
+        console.error(`❌ Failed to enrich ${id}:`, fetchErr);
+        return null; // gracefully handle errors
       }
-    };
+    }));
+
+    const validItems = enriched.filter((item) => item !== null);
+    setItems(validItems);
+    setFilteredItems(validItems);
+  } catch (err) {
+    console.error("❌ Error fetching items:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
     fetchItems();
   }, [accountId]);
@@ -82,15 +76,9 @@ export default function ContinueWatchingPage() {
         <h1 className="text-4xl font-bold mb-8 text-center">Continue Watching</h1>
 
         <div className="flex justify-center mb-6 space-x-4">
-          <button onClick={() => filter("movie")} className="bg-white text-black px-4 py-2 rounded hover:bg-gray-300">
-            Movies
-          </button>
-          <button onClick={() => filter("episode")} className="bg-white text-black px-4 py-2 rounded hover:bg-gray-300">
-            Episodes
-          </button>
-          <button onClick={() => filter("all")} className="bg-white text-black px-4 py-2 rounded hover:bg-gray-300">
-            All
-          </button>
+          <button onClick={() => filter("movie")} className="bg-white text-black px-4 py-2 rounded hover:bg-gray-300">Movies</button>
+          <button onClick={() => filter("episode")} className="bg-white text-black px-4 py-2 rounded hover:bg-gray-300">Episodes</button>
+          <button onClick={() => filter("all")} className="bg-white text-black px-4 py-2 rounded hover:bg-gray-300">All</button>
         </div>
 
         {filteredItems.length === 0 ? (
@@ -100,8 +88,15 @@ export default function ContinueWatchingPage() {
         ) : (
           <div className="mt-12 grid grid-cols-5 gap-3 items-center scrollbar-hide md:p-2">
             {filteredItems.map((item) => (
-              <div key={`${item.id}-${item.accountId}`}>
-                <MediaItem media={item} listView />
+              <div key={`${item.id}-${accountId}`}>
+                <MediaItem 
+                  media={item} 
+                  listView 
+                  onClick={() => {
+                    setCurrentMediaInfoIdAndType({ type: item.type, id: item.id });
+                    setShowDetailsPopup(true);
+                  }}
+                />
                 <p className="text-sm text-gray-400 mt-2">
                   {formatWatchTime(item.progressInSeconds)} watched
                 </p>

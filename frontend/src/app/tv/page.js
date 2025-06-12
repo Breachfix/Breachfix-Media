@@ -23,56 +23,45 @@ export default function TV() {
     async function getAllMedias() {
       try {
         const genres = [
-          "Prophecy",
-          "Bible",
-          "Faith",
-          "Healing",
-          "Family",
-          "Creation",
-          "EndTime",
-          "Truth",
-          "Witness",
-          "Health",
-          "Discipleship",
-          "Testimony",
-          "Sabbath",
-          "Hope",
-          "Love",
+          "Prophecy", "Bible", "Faith", "Healing", "Family", "Creation",
+          "EndTime", "Truth", "Witness", "Health", "Discipleship",
+          "Testimony", "Sabbath", "Hope", "Love",
         ];
 
-        const allFavorites = await getAllfavorites(
-          user?.id,
-          loggedInAccount?._id
+        const allFavorites = await getAllfavorites(user?.id, loggedInAccount?._id);
+        const favoriteIds = new Set(
+          (Array.isArray(allFavorites) ? allFavorites : []).map(fav => fav.movieID)
         );
 
-        const mediaRows = await Promise.all(
+        const mediaRows = await Promise.allSettled(
           genres.map(async (genre) => {
             const medias = await getTVorMoviesByGenre("tv", genre);
+
             return {
               title: genre,
               medias: Array.isArray(medias)
-                ? medias.map((mediaItem) => ({
-                    ...mediaItem,
-                    type: "tv",
-                    addedToFavorites: Array.isArray(allFavorites)
-                      ? allFavorites.some(
-                          (fav) =>
-                            fav.movieID === mediaItem.id ||
-                            fav.movieID === mediaItem._id
-                        )
-                      : false,
-                      
-                  }))
+                ? medias.map(mediaItem => {
+                    const id = mediaItem.id || mediaItem._id;
+                    return {
+                      ...mediaItem,
+                      type: "tv",
+                      addedToFavorites: favoriteIds.has(id),
+                    };
+                  })
                 : [],
             };
           })
         );
 
-        setMediaData(mediaRows);
+        const validMediaRows = mediaRows
+          .filter(result => result.status === "fulfilled")
+          .map(result => result.value);
+
+        setMediaData(validMediaRows);
         setPageLoader(false);
       } catch (error) {
         console.error("❌ Error fetching TV media data:", error);
-        setMediaData([]); // Avoid crashing render
+        setMediaData([]);
         setPageLoader(false);
       }
     }
@@ -86,9 +75,9 @@ export default function TV() {
 
   return (
     <RequireAuth>
-    <main className="flex min-h-screen flex-col">
-      <CommonLayout mediaData={mediaData} />
-    </main>
+      <main className="flex min-h-screen flex-col">
+        <CommonLayout mediaData={mediaData} />
+      </main>
     </RequireAuth>
   );
 }
