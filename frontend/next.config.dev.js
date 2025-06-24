@@ -1,7 +1,5 @@
 const nextDevConfig = {
-  experimental: {
-    instrumentationHook: false, // 👈 disables _vercel/speed-insights in dev
-  },
+
   images: {
     remotePatterns: [
       {
@@ -41,6 +39,7 @@ img-src 'self' data: https: blob:;
 font-src 'self' https:;
 connect-src 'self' https: blob: http://localhost:7001 https://api.breachfix.com https://adventhub.onrender.com https://d3rotgd7sghdsb.cloudfront.net https://bridgefixdb.s3.us-east-1.amazonaws.com;
 media-src 'self' https://d3rotgd7sghdsb.cloudfront.net https://bridgefixdb.s3.us-east-1.amazonaws.com blob:;
+worker-src 'self' blob:;
 frame-src *;
 object-src 'none';
 `.replace(/\n/g, "").trim(),

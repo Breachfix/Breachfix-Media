@@ -39,6 +39,7 @@ img-src 'self' https: data: blob:;
 font-src 'self' https: data:;
 connect-src 'self' https: blob: http://localhost:7001 https://api.breachfix.com https://adventhub.onrender.com https://d3rotgd7sghdsb.cloudfront.net https://bridgefixdb.s3.us-east-1.amazonaws.com;
 media-src 'self' https://d3rotgd7sghdsb.cloudfront.net https://bridgefixdb.s3.us-east-1.amazonaws.com blob:;
+worker-src 'self' blob:;
 frame-src 'self' https:;
 object-src 'none';
 `.replace(/\n/g, "").trim(),
