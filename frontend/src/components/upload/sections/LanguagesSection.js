@@ -1,6 +1,7 @@
 // components/upload/sections/LanguageSection.js
 
 import React from "react";
+import Section from "../Section";
 
 const ALL_LANGUAGES = [
   "English", "French", "Spanish", "German", "Portuguese",
@@ -39,7 +40,7 @@ const LanguageSection = ({ form, setForm }) => {
               key={lang}
               onClick={() => toggleSelection(type, lang)}
               className={`cursor-pointer px-4 py-2 rounded-md border text-center transition-all duration-200 ${
-                isSelected ? "bg-blue-50 dark:bg-blue-800 border-blue-600 font-bold text-black dark:text-white" : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300"
+                isSelected ? "bg-blue-50 dark:bg-blue-800 border-blue-600 font-bold text-black dark:text-white" : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-600"
               }`}
             >
               {lang}
@@ -51,9 +52,10 @@ const LanguageSection = ({ form, setForm }) => {
   );
 
   return (
-    <div className="mb-6 p-4 border rounded-xl shadow-sm bg-white dark:bg-gray-900">
-      <h2 className="text-xl font-semibold mb-3">Languages & Subtitles</h2>
-      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+     <Section title="Languages & Subtitles">
+    <div className="mb-6 p-4  ">
+      <h2 className="text-xl font-semibold mb-3"></h2>
+      <p className="text-sm text-gray-600 dark:text-gray-600 mb-4">
         Choosing the right language options ensures viewers can experience your content in their preferred way. This section also helps prepare for future support like AI dubbing and subtitle generation.
       </p>
 
@@ -69,6 +71,7 @@ const LanguageSection = ({ form, setForm }) => {
         "Select the subtitle languages already available or planned. This will assist with accessibility and allow AI to auto-sync captions in future versions."
       )}
     </div>
+    </Section>
   );
 };
 

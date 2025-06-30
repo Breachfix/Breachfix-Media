@@ -25,6 +25,7 @@ const maybeConvert = async (file) => {
 };
 
 const Dropzone = ({ label, name, onChange, previewUrl, accept, onClear }) => {
+  const inputRef = useRef(null);
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -135,14 +136,14 @@ const Dropzone = ({ label, name, onChange, previewUrl, accept, onClear }) => {
         className="border border-dashed rounded-lg p-4 text-center cursor-pointer bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 relative"
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
-        onClick={() => document.getElementById(`input-${name}`).click()}
+        onClick={() => inputRef.current?.click()}
       >
         <p className="text-sm text-gray-500">Drag & drop or click to upload</p>
         {renderPreview()}
       </div>
 
       <Input
-        id={`input-${name}`}
+        ref={inputRef} 
         name={name}
         type="file"
         accept={accept || "*/*"}

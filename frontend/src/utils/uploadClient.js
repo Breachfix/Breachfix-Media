@@ -1,8 +1,5 @@
 // src/utils/uploadClient.js
 
-const API = process.env.NEXT_PUBLIC_API_BASE_URL;
-const API_BASE = `${API}/api/v3/media/upload`;
-
 /**
  * Step 1: Get presigned URL from backend
  */
@@ -13,7 +10,7 @@ export async function getPresignedUrl({ file, fieldName, mediaType }) {
   const cleanName = file.name.replace(/\s+/g, "_");
   const key = `temp/${mediaType}/${fieldName}/${timestamp}_${cleanName}`;
 
-  const res = await uploadApi.post("/presign", {
+  const res = await uploadApi.post("/media/upload/presign", {
     key,
     contentType: file.type,
   });
@@ -42,7 +39,7 @@ export async function uploadToS3({ file, presignedUrl }) {
  * Step 3: Finalize upload by notifying backend
  */
 export async function finalizeUpload(type, data) {
-  const res = await uploadApi.post(`/upload-${type}`, data);
+  const res = await uploadApi.post(`/media/upload/upload-${type}`, data);
   if (!res.data?.success) {
     throw new Error("Failed to finalize upload");
   }

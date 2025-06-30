@@ -3,16 +3,17 @@
 import {
   getPresignedUrl,
   uploadToS3,
-  extractS3KeyFromUrl,
   finalizeUpload,
+  extractS3KeyFromUrl, // ✅ Now actively used
 } from "./uploadClient";
 
 /**
- * Upload multiple media files to S3 and return a map of their S3 keys.
+ * Upload media files to S3 and finalize the upload with backend.
  * @param {Object} files - A map of file input names to File objects.
- * @param {string} mediaType - The type of media (movie, episode, tv-show).
+ * @param {string} mediaType - Type of content ("movie", "episode", "tv-show").
+ * @param {Object} metadata - Extra metadata to finalize the upload (e.g., title, description).
  */
-export async function uploadMediaFiles({ files, mediaType }) {
+export async function uploadMediaFiles({ files, mediaType, metadata }) {
   const result = {};
 
   for (const [fieldName, file] of Object.entries(files)) {
@@ -23,12 +24,23 @@ export async function uploadMediaFiles({ files, mediaType }) {
       fieldName,
       mediaType,
     });
+
     await uploadToS3({ file, presignedUrl });
 
-    result[fieldName + "S3Key"] = key; // store raw S3 key
+    // For demonstration: convert URL to key (even though we already have `key`)
+    const extractedKey = extractS3KeyFromUrl(presignedUrl);
+    result[fieldName + "S3Key"] = extractedKey;
   }
 
-  return result;
+  // Combine S3 keys with metadata and finalize
+  const payload = {
+    ...metadata,
+    ...result,
+  };
+
+  await finalizeUpload(mediaType, payload);
+
+  return payload;
 }
 
 /**
@@ -46,7 +58,8 @@ export async function uploadActorProfile(file) {
 
   await uploadToS3({ file, presignedUrl });
 
-  return key;
+  // Example use of extractS3KeyFromUrl
+  return extractS3KeyFromUrl(presignedUrl);
 }
 
 /**
@@ -64,5 +77,6 @@ export async function uploadCompanyLogo(file) {
 
   await uploadToS3({ file, presignedUrl });
 
-  return key;
+  // Example use of extractS3KeyFromUrl
+  return extractS3KeyFromUrl(presignedUrl);
 }

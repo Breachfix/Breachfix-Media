@@ -121,13 +121,21 @@ const UploadForm = ({ contentType }) => {
         subscriptionOnly: form.subscriptionOnly
       };
 
-      const payload = {
-        ...form,
-        ...fileKeys,
-        pricing,
-        actors: form.actors.split(",").map((a) => a.trim()),
-        tags: (Array.isArray(form.tags) ? form.tags : form.tags.split(",")).map((t) => t.trim())
-      };
+      const normalizeArray = (input) => {
+  if (Array.isArray(input)) return input;
+  if (typeof input === "string") return input.split(",").map((item) => item.trim());
+  return [];
+};
+
+const payload = {
+  ...form,
+  ...fileKeys,
+  pricing,
+  actors: normalizeArray(form.actors),
+  tags: normalizeArray(form.tags),
+};
+
+      
 
       await finalizeUpload(contentType, payload);
       alert(`${contentType} uploaded successfully!`);
@@ -140,27 +148,12 @@ const UploadForm = ({ contentType }) => {
   };
 
 return (
-  <div className="min-h-screen bg-[#f9f9f9] py-10 px-4 md:px-8">
-    <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-md p-6 md:p-10 space-y-8 border border-gray-200">
+  <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-gray-800">
-        📤 Upload {contentType.charAt(0).toUpperCase() + contentType.slice(1)}
+        Upload {contentType.charAt(0).toUpperCase() + contentType.slice(1)}
       </h1>
 
-      <GeneralInfoSection form={form} handleChange={handleChange} />
-
-      <GenresTagsSection
-        form={form}
-        setForm={setForm}
-        handleChange={handleChange}
-        genreSuggestions={genreSuggestions}
-        tagSuggestions={[]}
-      />
-
-      <LanguagesSection form={form} setForm={setForm} handleChange={handleChange} />
-
-      <ContentWarningsSection form={form} setForm={setForm} handleChange={handleChange} />
-
-      <MediaUploadSection
+       <MediaUploadSection
         form={form}
         setForm={setForm}
         posterPreview={posterPreview}
@@ -172,7 +165,19 @@ return (
         handleChange={handleChange}
       />
 
-      <PricingSection form={form} setForm={setForm} handleChange={handleChange} />
+      <GeneralInfoSection form={form} setForm={setForm} />
+
+      {/* <GenresTagsSection
+        form={form}
+        setForm={setForm}
+        handleChange={handleChange}
+        genreSuggestions={genreSuggestions}
+        tagSuggestions={[]}
+      /> */}
+
+      {/* <LanguagesSection form={form} setForm={setForm} handleChange={handleChange} /> */}
+
+      {/* <ContentWarningsSection form={form} setForm={setForm} handleChange={handleChange} /> */}
 
       {contentType === "movie" && (
         <MovieMetadataSection form={form} setForm={setForm} handleChange={handleChange} />
@@ -191,6 +196,10 @@ return (
         />
       )}
 
+
+
+      <PricingSection form={form} setForm={setForm} handleChange={handleChange} />
+
       <div className="flex justify-end">
         <Button
           onClick={handleSubmit}
@@ -200,7 +209,7 @@ return (
           {uploading ? "Uploading..." : `Upload ${contentType}`}
         </Button>
       </div>
-    </div>
+    {/* </div> */}
   </div>
 );}
 export default UploadForm;

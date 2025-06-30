@@ -42,7 +42,7 @@ export default function AdminLayout({ children }) {
     <div className="flex min-h-screen">
       {/* Sidebar */}
       <aside className="w-64 bg-gray-900 text-white p-4 space-y-4">
-        <h1 className="text-2xl font-bold mb-6">🎬 BridgeFix Admin</h1>
+        <h1 className="text-2xl font-bold mb-6">Admin</h1>
 
         <nav className="space-y-2">
           <NavButton
