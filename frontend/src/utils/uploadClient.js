@@ -39,11 +39,36 @@ export async function uploadToS3({ file, presignedUrl }) {
  * Step 3: Finalize upload by notifying backend
  */
 export async function finalizeUpload(type, data) {
-  const res = await uploadApi.post(`/media/upload/upload-${type}`, data);
-  if (!res.data?.success) {
-    throw new Error("Failed to finalize upload");
+  try {
+    const res = await uploadApi.post(`/media/upload/upload-${type}`, data);
+    if (!res.data?.success) {
+      console.error("❌ Finalize response:", res.data);
+      throw new Error("Failed to finalize upload");
+    }
+    return res.data;
+  } catch (err) {
+    console.error("❌ Axios error:", err.response?.data || err.message);
+    throw err;
   }
-  return res.data;
+}
+function pluralizeType(type) {
+  if (type === "tv-show") return "tvshows";
+  if (type === "movie") return "movies";
+  if (type === "episode") return "episodes";
+  return type;
+}
+export async function finalizeMediaMetadata(type, payload) {
+  try {
+    const res = await uploadApi.post(`/media/${pluralizeType(type)}`, payload);
+    if (!res.data?.success) {
+      console.error("❌ Finalize media metadata failed:", res.data);
+      throw new Error("Failed to finalize media metadata");
+    }
+    return res.data?.data || res.data;
+  } catch (err) {
+    console.error("❌ Axios error [metadata]:", err.response?.data || err.message);
+    throw err;
+  }
 }
 
 /**

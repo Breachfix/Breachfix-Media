@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { uploadMediaFiles } from "@/utils/useUploader";
-import { finalizeUpload } from "@/utils/uploadClient";
+import { uploadMediaFiles, safeFinalizeUpload,} from "@/utils/useUploader";
+import { finalizeUpload, finalizeMediaMetadata } from "@/utils/uploadClient";
 
 import GeneralInfoSection from "../sections/GeneralInfoSection";
 import GenresTagsSection from "../sections/GenresTagsSection";
@@ -101,51 +101,82 @@ const UploadForm = ({ contentType }) => {
     }
   };
 
-  const handleSubmit = async () => {
-    try {
-      setUploading(true);
+const handleSubmit = async () => {
+  try {
+    setUploading(true);
 
-      const fileKeys = await uploadMediaFiles({
-        files: {
-          posterFile: form.posterFile,
-          trailerFile: form.trailerFile,
-          videoFile: form.videoFile
-        },
-        mediaType: contentType
-      });
+    const ensureArray = (val) => Array.isArray(val) ? val : [];
+    const normalizeArray = (input) => {
+      if (Array.isArray(input)) return input;
+      if (typeof input === "string") return input.split(",").map((item) => item.trim());
+      return [];
+    };
 
-      const pricing = {
-        type: form.pricingType,
-        purchasePrice: parseFloat(form.purchasePrice),
-        rentalPrice: parseFloat(form.rentalPrice),
-        subscriptionOnly: form.subscriptionOnly
-      };
+    // 🧹 Strip UI-only fields
+    const {
+      genreInput,
+      tagInput,
+      newAvailableLang,
+      newSubtitleLang,
+      newContentWarning,
+      ...cleanForm
+    } = form;
 
-      const normalizeArray = (input) => {
-  if (Array.isArray(input)) return input;
-  if (typeof input === "string") return input.split(",").map((item) => item.trim());
-  return [];
-};
+    const pricing = {
+      type: form.pricingType,
+      purchasePrice: parseFloat(form.purchasePrice),
+      rentalPrice: parseFloat(form.rentalPrice),
+      subscriptionOnly: form.subscriptionOnly,
+    };
 
-const payload = {
-  ...form,
-  ...fileKeys,
-  pricing,
-  actors: normalizeArray(form.actors),
-  tags: normalizeArray(form.tags),
-};
+    const metadata = {
+      ...cleanForm,
+      pricing,
+      actors: normalizeArray(form.actors),
+      tags: normalizeArray(form.tags),
+      genres: ensureArray(form.genres),
+      availableLanguages: ensureArray(form.availableLanguages),
+      subtitleLanguages: ensureArray(form.subtitleLanguages),
+      contentWarnings: ensureArray(form.contentWarnings),
+    };
 
-      
+    // 1. Upload files & get S3 keys
+    const result = await uploadMediaFiles({
+      files: {
+        posterFile: form.posterFile,
+        trailerFile: form.trailerFile,
+        videoFile: form.videoFile,
+      },
+      mediaType: contentType,
+      metadata,
+    });
 
-      await finalizeUpload(contentType, payload);
-      alert(`${contentType} uploaded successfully!`);
-    } catch (err) {
-      console.error("Upload error:", err);
-      alert("Upload failed.");
-    } finally {
-      setUploading(false);
+
+    const id = result?._id || result?.id;
+    if (!id) throw new Error("❌ Failed to retrieve ID from saved content");
+
+    // 2. Finalize each uploaded file to permanent S3 path
+    const { posterFileS3Key, trailerFileS3Key, videoFileS3Key } = result;
+
+    if (posterFileS3Key) {
+      await safeFinalizeUpload(posterFileS3Key, id, contentType, "poster", form.tvShowId, form.seasonNumber);
     }
-  };
+    if (trailerFileS3Key) {
+      await safeFinalizeUpload(trailerFileS3Key, id, contentType, "trailer", form.tvShowId, form.seasonNumber);
+    }
+    if (videoFileS3Key) {
+      await safeFinalizeUpload(videoFileS3Key, id, contentType, "video", form.tvShowId, form.seasonNumber);
+    }
+
+    alert(`${contentType} uploaded and finalized successfully!`);
+  } catch (err) {
+    console.error("Upload error:", err);
+    alert("Upload failed.");
+  } finally {
+    setUploading(false);
+  }
+};
+
 
 return (
   <div className="space-y-6">
