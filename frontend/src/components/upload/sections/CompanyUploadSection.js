@@ -17,7 +17,7 @@ const CompanyUploadSection = ({
       {/* Company Logo Upload */}
       <Section title="Company Logo">
         <Dropzone
-          label="Logo"
+          //label="Logo"
           name="logoFile"
           accept="image/*"
           previewUrl={logoPreview}

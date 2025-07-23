@@ -8,9 +8,9 @@ const ActorUploadSection = ({ form, setForm, profilePreview, setProfilePreview, 
   return (
     <>
           {/* Profile Upload */}
-      <Section title="Profile Image">
+      <Section title="Profile Image ">
         <Dropzone
-          label="Profile Image"
+          //label=""
           name="profileFile"
           onChange={handleChange}
           previewUrl={profilePreview}

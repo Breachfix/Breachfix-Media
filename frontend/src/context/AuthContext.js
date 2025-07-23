@@ -71,16 +71,24 @@ export const AuthProvider = ({ children }) => {
   };
 
 useEffect(() => {
-  const token = localStorage.getItem("authToken");
-  if (token) {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    const isExpired = payload.exp * 1000 < Date.now();
+  if (typeof window === "undefined") return;
 
-    if (isExpired) {
-      console.warn("⏰ Token expired, logging out...");
-      handleLogout();
-    } else {
-      loadUser();
+  const token = localStorage.getItem("authToken");
+
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const isExpired = payload.exp * 1000 < Date.now();
+
+      if (isExpired) {
+        console.warn("⏰ Token expired, logging out...");
+        handleLogout();
+      } else {
+        loadUser();
+      }
+    } catch (err) {
+      console.error("❌ Token decoding failed:", err.message);
+      handleLogout(); // logout just in case the token is corrupted
     }
   } else {
     setAuthLoading(false);

@@ -47,6 +47,8 @@ const CompanyUploadForm = () => {
   };
 
   return (
+    <>
+    <h1 className="text-2xl font-semibold text-gray-800 mb-6">Upload Company</h1>
     <form onSubmit={handleSubmit} className="space-y-6">
       <CompanyUploadFormSections
         form={form}
@@ -60,6 +62,7 @@ const CompanyUploadForm = () => {
         <Button type="submit">Upload Company</Button>
       </div>
     </form>
+    </>
   );
 };
 

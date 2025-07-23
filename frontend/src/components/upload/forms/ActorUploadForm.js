@@ -38,7 +38,7 @@ const ActorUploadForm = () => {
       }
     }
 
-    const res = await fetch("/api/v3/actors", {
+    const res = await fetch("http://localhost:7001/api/v3/actors", {
       method: "POST",
       body,
     });
@@ -48,6 +48,8 @@ const ActorUploadForm = () => {
   };
 
   return (
+    <>
+    <h1 className="text-2xl font-semibold text-gray-800 mb-6">Upload Actor</h1>
     <form onSubmit={handleSubmit} className="space-y-6">
       <ActorUploadFormSections
         form={form}
@@ -61,6 +63,7 @@ const ActorUploadForm = () => {
         <Button type="submit">Upload Actor</Button>
       </div>
     </form>
+    </>
   );
 };
 

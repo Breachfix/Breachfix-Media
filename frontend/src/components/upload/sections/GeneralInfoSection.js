@@ -12,7 +12,7 @@ import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
 import { CONTENT_WARNINGS, ALL_LANGUAGES, GENRES, TAGS, FLATTENED_AGE_RATINGS} from "./constants";
 
-const GeneralInfoSection = ({ form, setForm }) => {
+const GeneralInfoSection = ({ form, setForm, setIsActorModalOpen, setIsCompanyModalOpen }) => {
   const [actorOptions, setActorOptions] = useState([]);
   const flatAgeRatingOptions = Object.values(FLATTENED_AGE_RATINGS).flat();
   const [companyOptions, setCompanyOptions] = useState([]);
@@ -315,7 +315,7 @@ const [tagOptions, setTagOptions] = useState(
             <Button
               size="sm"
               variant="outline"
-              onClick={() => router.push("/admin/upload/actors")}
+              onClick={() => setIsActorModalOpen(true)}
             >
               + Actor
             </Button>
@@ -354,7 +354,7 @@ const [tagOptions, setTagOptions] = useState(
             <Button
               size="sm"
               variant="outline"
-              onClick={() => router.push("/admin/upload/companies")}
+              onClick={() => setIsCompanyModalOpen(true)}
             >
               + Company
             </Button>

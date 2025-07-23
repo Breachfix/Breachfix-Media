@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import SuppressHydrationWarning from "@/components/SuppressHydrationWarning";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next"
+import ConsoleSuppressor from "@/components/dev/ConsoleSuppressor";
 
 const workSans = Work_Sans({
   subsets: ["latin"],
@@ -29,6 +30,7 @@ export default function RootLayout({ children }) {
       <body className="font-sans text-white bg-black">
         <SuppressHydrationWarning /> {/* ✅ correct usage */}
         <AuthProvider>
+           <ConsoleSuppressor />
           <GlobalState>
             {children}
             <SpeedInsights />

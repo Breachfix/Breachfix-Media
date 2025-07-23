@@ -52,10 +52,15 @@ export async function finalizeUpload(type, data) {
   }
 }
 function pluralizeType(type) {
-  if (type === "tv-show") return "tvshows";
-  if (type === "movie") return "movies";
-  if (type === "episode") return "episodes";
-  return type;
+  const map = {
+    "tv-show": "tvshows",
+    "movie": "movies",
+    "episode": "episodes",
+    "actor": "actor",
+    "company": "company",
+  };
+  if (!map[type]) throw new Error(`Unknown type for pluralization: ${type}`);
+  return map[type];
 }
 export async function finalizeMediaMetadata(type, payload) {
   try {

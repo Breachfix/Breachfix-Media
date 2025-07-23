@@ -12,6 +12,10 @@ import PricingSection from "../sections/PricingSection";
 import MovieMetadataSection from "../metadata/MovieMetadataSection";
 import TvShowMetadataSection from "../metadata/TvShowMetadataSection";
 import EpisodeMetadataSection from "../metadata/EpisodeMetadataSection";
+import ActorModal from "../modals/ActorModal";
+import CompanyModal from "../modals/CompanyModal";
+
+import { Plus } from "lucide-react"; // Optional icon
 
 const ALL_GENRES = [
   "Prophecy", "Bible", "Faith", "Healing", "Education", "Youth", "Science",
@@ -23,6 +27,10 @@ const ALL_GENRES = [
 const UploadForm = ({ contentType }) => {
   const [genreSuggestions, setGenreSuggestions] = useState(ALL_GENRES);
   const [tvShows, setTvShows] = useState([]);
+  const [isActorModalOpen, setIsActorModalOpen] = useState(false);
+  const [actorOptions, setActorOptions] = useState([]);
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
+  const [companyOptions, setCompanyOptions] = useState([]);
 
   const [form, setForm] = useState({
     title: "",
@@ -63,6 +71,8 @@ const UploadForm = ({ contentType }) => {
   const [trailerPreview, setTrailerPreview] = useState(null);
   const [videoPreview, setVideoPreview] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const DRAFT_KEY = `draftUploadForm-${contentType}`;
+
 
   useEffect(() => {
     if (contentType === "episode") {
@@ -72,6 +82,16 @@ const UploadForm = ({ contentType }) => {
     }
   }, [contentType]);
 
+ useEffect(() => {
+  const savedForm = localStorage.getItem(DRAFT_KEY);
+  if (savedForm) {
+    setForm(JSON.parse(savedForm));
+  }
+}, [contentType]);
+useEffect(() => {
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+}, [form]);
+
   useEffect(() => {
     return () => {
       if (posterPreview) URL.revokeObjectURL(posterPreview);
@@ -79,6 +99,26 @@ const UploadForm = ({ contentType }) => {
       if (videoPreview) URL.revokeObjectURL(videoPreview);
     };
   }, []);
+
+  const handleActorCreated = (newActor) => {
+  // Update actorOptions list with the new actor
+  setActorOptions((prev) => [...prev, newActor]);
+
+  // Add new actor's ID to selected form actors
+  setForm((prev) => ({
+    ...prev,
+    actors: [...(prev.actors || []), newActor._id],
+  }));
+};
+
+const handleCompanyCreated = (newCompany) => {
+  setCompanyOptions((prev) => [...prev, newCompany]);
+
+  setForm((prev) => ({
+    ...prev,
+    company: newCompany._id,
+  }));
+};
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -104,6 +144,8 @@ const UploadForm = ({ contentType }) => {
 const handleSubmit = async () => {
   try {
     setUploading(true);
+
+    localStorage.removeItem(DRAFT_KEY);
 
     const ensureArray = (val) => Array.isArray(val) ? val : [];
     const normalizeArray = (input) => {
@@ -196,7 +238,23 @@ return (
         handleChange={handleChange}
       />
 
-      <GeneralInfoSection form={form} setForm={setForm} />
+      <GeneralInfoSection
+  form={form}
+  setForm={setForm}
+  setIsActorModalOpen={setIsActorModalOpen}
+  setIsCompanyModalOpen={setIsCompanyModalOpen}
+/>
+      <ActorModal
+  isOpen={isActorModalOpen}
+  onClose={() => setIsActorModalOpen(false)}
+  onActorCreated={handleActorCreated}
+/> 
+
+<CompanyModal
+  isOpen={isCompanyModalOpen}
+  onClose={() => setIsCompanyModalOpen(false)}
+  onCompanyCreated={handleCompanyCreated}
+/>
 
       {/* <GenresTagsSection
         form={form}

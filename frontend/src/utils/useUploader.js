@@ -29,7 +29,7 @@ export async function safeFinalizeUpload(tempS3Key, id, type, fileType, tvShowId
 /**
  * Upload media files to S3 and finalize the upload with backend.
  * @param {Object} files - A map of file input names to File objects.
- * @param {string} mediaType - Type of content ("movie", "episode", "tv-show").
+ * @param {string} mediaType - Type of content ("movie", "episode", "tv-show", "actor", "company").
  * @param {Object} metadata - Extra metadata to finalize the upload (e.g., title, description).
  */
 export async function uploadMediaFiles({ files, mediaType, metadata }) {
@@ -54,6 +54,8 @@ export async function uploadMediaFiles({ files, mediaType, metadata }) {
   const metadataPayload = {
     ...metadata,
     ...result,
+    profileImage: result.imageFileS3Key || metadata.profileImage,
+    logoUrl: result.imageFileS3Key || metadata.logoUrl,
     thumbnail_url_s3: result.posterFileS3Key || metadata.posterUrl,
     trailerUrl: result.trailerFileS3Key || metadata.trailerUrl,
     video_url_s3: result.videoFileS3Key || metadata.videoUrl,
@@ -63,7 +65,7 @@ export async function uploadMediaFiles({ files, mediaType, metadata }) {
   const id = saved?._id || saved?.id;
   if (!id) throw new Error("❌ Failed to retrieve ID from saved content");
 
-  // Step 3: Finalize all uploaded files (move from temp to final S3 paths)
+  // Step 3: Finalize uploaded files (move from temp to final S3 paths)
   const finalizedPoster = result.posterFileS3Key
     ? await finalizeUpload(mediaType, {
         tempS3Key: result.posterFileS3Key,
@@ -106,47 +108,26 @@ export async function uploadMediaFiles({ files, mediaType, metadata }) {
       })
     : null;
 
-  // Optional: Patch MongoDB with final CloudFront URLs if needed
-  // (skip this if finalizeUpload already updates DB)
+  const finalizedImage = result.imageFileS3Key
+    ? await finalizeUpload(mediaType, {
+        tempS3Key: result.imageFileS3Key,
+        target: {
+          id,
+          type: mediaType,
+          fileType: mediaType === "actor" ? "profile" : "logo",
+          title: metadata.title,
+        },
+      })
+    : null;
 
   return {
     ...saved,
     thumbnail_url_s3: finalizedPoster?.cloudfrontUrl || saved.thumbnail_url_s3,
     trailerUrl: finalizedTrailer?.cloudfrontUrl || saved.trailerUrl,
     video_url_s3: finalizedVideo?.cloudfrontUrl || saved.video_url_s3,
+    profileImage:
+      mediaType === "actor" ? finalizedImage?.cloudfrontUrl || saved.profileImage : saved.profileImage,
+    logoUrl:
+      mediaType === "company" ? finalizedImage?.cloudfrontUrl || saved.logoUrl : saved.logoUrl,
   };
-}
-
-/**
- * Upload an actor profile image using the presigned flow.
- * Returns the profileS3Key for finalization.
- */
-export async function uploadActorProfile(file) {
-  if (!file) return null;
-
-  const { url: presignedUrl } = await getPresignedUrl({
-    file,
-    fieldName: "profile",
-    mediaType: "actor",
-  });
-
-  await uploadToS3({ file, presignedUrl });
-  return extractS3KeyFromUrl(presignedUrl);
-}
-
-/**
- * Upload a company logo using the presigned flow.
- * Returns the logoS3Key for finalization.
- */
-export async function uploadCompanyLogo(file) {
-  if (!file) return null;
-
-  const { url: presignedUrl } = await getPresignedUrl({
-    file,
-    fieldName: "logo",
-    mediaType: "company",
-  });
-
-  await uploadToS3({ file, presignedUrl });
-  return extractS3KeyFromUrl(presignedUrl);
 }
