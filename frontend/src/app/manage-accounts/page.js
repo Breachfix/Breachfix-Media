@@ -1,4 +1,3 @@
-// manage-accounts.js
 "use client";
 
 import { GlobalContext } from "@/context";
@@ -12,15 +11,11 @@ import PinContainer from "@/components/pin-container";
 import AuthBackground from "@/components/AuthBackground";
 import RequireAuth from "@/components/RequireAuth";
 
-const initialFormData = { name: "", pin: "" };
 
-function getInitials(name) {
-  if (!name) return "";
-  const parts = name.trim().split(" ");
-  return parts.length === 1
-    ? parts[0][0].toUpperCase()
-    : (parts[0][0] + parts[1][0]).toUpperCase();
-}
+const initialFormData = {
+  name: "",
+  pin: "",
+};
 
 export default function ManageAccounts() {
   const {
@@ -57,7 +52,10 @@ export default function ManageAccounts() {
       localStorage.getItem("userId") ||
       JSON.parse(localStorage.getItem("loggedInAccount"))?.uid;
 
-    if (!uid || uid === "undefined") return;
+    if (!uid || uid === "undefined") {
+      console.warn("🚫 Missing UID for account fetch");
+      return;
+    }
 
     try {
       const res = await fetch(`/api/account/get-all-accounts?uid=${uid}`);
@@ -65,16 +63,21 @@ export default function ManageAccounts() {
 
       if (data.success && Array.isArray(data.data)) {
         setAccounts(data.data);
+        console.log("✅ Accounts loaded:", data.data);
+      } else {
+        console.warn("⚠️ No accounts found");
       }
     } catch (err) {
-      console.error("Error loading accounts:", err);
+      console.error("❌ Error loading accounts:", err);
     } finally {
       setPageLoader(false);
     }
   };
 
   useEffect(() => {
-    if (!authLoading && user?.id) getAllAccounts();
+    if (!authLoading && user?.id) {
+      getAllAccounts();
+    }
   }, [authLoading, user?.id]);
 
   const handleSave = async () => {
@@ -90,9 +93,11 @@ export default function ManageAccounts() {
         setShowAccountForm(false);
         setFormData(initialFormData);
         getAllAccounts();
+      } else {
+        console.error("Error saving account:", data.message);
       }
     } catch (err) {
-      console.error("Error saving account:", err);
+      console.error("Unexpected error:", err);
     }
   };
 
@@ -114,6 +119,7 @@ export default function ManageAccounts() {
   const handlePinSubmit = async (pinValue) => {
     try {
       setPageLoader(true);
+
       const res = await fetch("/api/account/login-to-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -146,7 +152,7 @@ export default function ManageAccounts() {
         setPin("");
       }
     } catch (err) {
-      console.error("PIN verification failed:", err);
+      console.error("❌ PIN verification failed:", err);
       setPinError(true);
     } finally {
       setPageLoader(false);
@@ -157,96 +163,72 @@ export default function ManageAccounts() {
 
   return (
     <RequireAuth>
-      <AuthBackground>
-        <div className="min-h-screen flex flex-col items-center justify-center px-6 py-16">
-          <div className="w-full max-w-4xl bg-black bg-opacity-60 p-8 rounded-lg shadow-2xl mb-10">
-            <h1 className="text-white font-extrabold text-4xl md:text-5xl text-center mb-8 uppercase">
-              Who's Watching?
-            </h1>
+    <AuthBackground>
+      <div className="min-h-[25vw] flex justify-center items-center px-6 py-16 relative">
+        <div className="w-full max-w-4xl bg-black bg-opacity-60 p-8 rounded-lg shadow-2xl">
+          <h1 className="text-white font-extrabold text-4xl md:text-5xl text-center mb-8 tracking-wide uppercase">
+            Who's Watching?
+          </h1>
 
-            <ul className="flex flex-wrap justify-center gap-6">
-              {accounts?.length > 0 &&
-                accounts.map((item) => (
-                  <li
-                    key={item._id}
-                    onClick={() =>
-                      !showDeleteIcon && setShowPinContainer({ show: true, account: item })
-                    }
-                    className="w-[155px] h-[155px] bg-black bg-opacity-40 border border-white rounded-md shadow-md flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform"
-                  >
-                    <div className="relative w-full h-[80%] overflow-hidden">
-                      <img
-                        src={item.profileImage || "/profile.jpg"}
-                        alt={item.name}
-                        className="w-full h-full object-cover rounded-md"
-                      />
-                      {showDeleteIcon && (
-                        <div
-                          onClick={() => handleRemoveAccount(item)}
-                          className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10"
-                        >
-                          <TrashIcon width={30} height={30} color="white" />
-                        </div>
-                      )}
-                    </div>
-                    <span className="mt-2 text-white font-semibold">{item.name}</span>
-                  </li>
-                ))}
-
-              {accounts?.length < 4 && (
+          <ul className="flex flex-wrap justify-center gap-6">
+            {accounts?.length > 0 &&
+              accounts.map((item) => (
                 <li
-                  onClick={() => setShowAccountForm(!showAccountForm)}
-                  className="w-[155px] h-[155px] border-2 border-dashed border-gray-400 flex items-center justify-center text-white text-5xl font-extrabold cursor-pointer hover:bg-[#e5b109] hover:text-black transition-colors duration-300 rounded-md"
+                  key={item._id}
+                  onClick={() =>
+                    !showDeleteIcon && setShowPinContainer({ show: true, account: item })
+                  }
+                  className="w-[155px] h-[155px] bg-black bg-opacity-40 border border-white rounded-md shadow-md flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform duration-300"
                 >
-                  +
-                </li>
-              )}
-            </ul>
-
-            <div className="text-center mt-6 space-y-4">
-              <button
-                onClick={() => setShowDeleteIcon(!showDeleteIcon)}
-                className="border border-gray-100 text-white px-6 py-2 text-sm rounded-full hover:bg-white hover:text-black transition-colors"
-              >
-                {showDeleteIcon ? "Cancel" : "Manage Profiles"}
-              </button>
-            </div>
-          </div>
-
-          {user?.id === loggedInAccount?.uid && (
-            <div className="w-full max-w-4xl bg-black bg-opacity-60 p-6 rounded-lg shadow-xl">
-              <h2 className="text-white text-xl font-semibold text-center mb-4">Main Account Access</h2>
-              <div
-                className="w-[155px] h-[155px] mx-auto bg-black bg-opacity-40 border border-white rounded-md shadow-md flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform"
-                onClick={() => router.push("/admin")}
-              >
-                <div className="relative w-full h-[80%] overflow-hidden">
-                  {user?.profileImage ? (
+                  <div className="relative w-full h-[80%] overflow-hidden">
                     <img
-                      src={user.profileImage}
-                      alt={user.name}
+                      src="https://occ-0-2611-3663.1.nflxso.net/dnm/api/v6/K6hjPJd6cR6FpVELC5Pd6ovHRSk/AAAABfNXUMVXGhnCZwPI1SghnGpmUgqS_J-owMff-jig42xPF7vozQS1ge5xTgPTzH7ttfNYQXnsYs4vrMBaadh4E6RTJMVepojWqOXx.png?r=1d4"
+                      alt={item.name}
                       className="w-full h-full object-cover rounded-md"
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-600 text-white text-2xl font-bold rounded-md">
-                      {getInitials(user?.name)}
-                    </div>
-                  )}
-                </div>
-                <span className="mt-2 text-white font-semibold">Main Account</span>
-              </div>
-              <div className="text-center mt-4">
-                <button
-                  onClick={() => router.push("/manage-subscriptions")}
-                  className="border border-yellow-500 text-yellow-400 px-6 py-2 text-sm rounded-full hover:bg-yellow-500 hover:text-black transition-colors"
-                >
-                  Manage Subscription
-                </button>
-              </div>
-            </div>
-          )}
+                    {showDeleteIcon && (
+                      <div
+                        onClick={() => handleRemoveAccount(item)}
+                        className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10"
+                      >
+                        <TrashIcon width={30} height={30} color="white" />
+                      </div>
+                    )}
+                  </div>
+                  <span className="mt-2 text-white font-semibold">{item.name}</span>
+                </li>
+              ))}
+
+            {accounts?.length < 4 && (
+              <li
+                onClick={() => setShowAccountForm(!showAccountForm)}
+                className="w-[155px] h-[155px] border-2 border-dashed border-gray-400 flex items-center justify-center text-white text-5xl font-extrabold cursor-pointer hover:bg-[#e5b109] hover:text-black transition-colors duration-300 rounded-md"
+              >
+                +
+              </li>
+            )}
+          </ul>
+
+          {/* Buttons Below */}
+          <div className="text-center mt-6 space-y-4">
+            <button
+              onClick={() => setShowDeleteIcon(!showDeleteIcon)}
+              className="border border-gray-100 text-white px-6 py-2 text-sm rounded-full hover:bg-white hover:text-black transition-colors"
+            >
+              {showDeleteIcon ? "Cancel" : "Manage Profiles"}
+            </button>
+
+            {/* 💡 Upgrade Button */}
+            <button
+              onClick={() => router.push("/subscribe")}
+              className="border border-yellow-500 text-yellow-400 px-6 py-2 text-sm rounded-full hover:bg-yellow-500 hover:text-black transition-colors"
+            >
+              Upgrade Your Subscription
+            </button>
+          </div>
         </div>
 
+        {/* Modals */}
         <PinContainer
           pin={pin}
           setPin={setPin}
@@ -263,7 +245,8 @@ export default function ManageAccounts() {
           setFormData={setFormData}
           showAccountForm={showAccountForm}
         />
-      </AuthBackground>
+      </div>
+    </AuthBackground>
     </RequireAuth>
   );
 }
