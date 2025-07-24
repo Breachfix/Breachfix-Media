@@ -12,9 +12,15 @@ import {
   ChevronRight,
   Menu,
   X,
+  User,
+  Building,
+  BarChart2,
+  CreditCard,
+  Inbox,
+  ArrowUpRight,
 } from 'lucide-react';
 
-const NavButton = ({ href, label, icon: Icon, active, onClick}) => (
+const NavButton = ({ href, label, icon: Icon, active, onClick }) => (
   <Link
     href={href}
     onClick={onClick}
@@ -52,17 +58,26 @@ export default function AdminLayout({ children }) {
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        {/* Close button on mobile */}
+        {/* Mobile Close Button */}
         <div className="flex justify-between items-center md:hidden mb-4">
-          <h1 className="text-2xl font-bold">Admin</h1>
+          <h1 className="text-2xl font-bold">Studio</h1>
           <button onClick={() => setSidebarOpen(false)} className="text-white text-xl">
             <X className="h-6 w-6" />
           </button>
         </div>
 
-        {/* Title on desktop */}
-        <h1 className="hidden md:block text-2xl font-bold mb-6">Admin</h1>
+        {/* Title & Back Link (Desktop) */}
+        <div className="hidden md:block mb-4">
+          <h1 className="text-2xl font-bold">Studio</h1>
+          <Link
+            href="/manage-accounts"
+            className="mt-1 inline-flex items-center gap-1 text-sm text-gray-300 hover:text-white hover:underline"
+          >
+            ← BreahFix
+          </Link>
+        </div>
 
+        {/* Navigation */}
         <nav className="space-y-2">
           <NavButton
             href="/admin"
@@ -72,7 +87,8 @@ export default function AdminLayout({ children }) {
             onClick={() => setSidebarOpen(false)}
           />
 
-          {/* Content Dropdown */}
+          {/* Content Group */}
+          <p className="text-gray-400 text-xs uppercase mt-4 mb-1">Content Management</p>
           <button
             onClick={() => toggleMenu('content')}
             className={`flex items-center px-3 py-2 w-full text-left rounded-md ${
@@ -92,14 +108,15 @@ export default function AdminLayout({ children }) {
           {expandedMenus.content && (
             <div className="ml-6 space-y-1 text-sm">
               <NavButton href="/admin/content/movies" label="Movies" icon={Film} active={pathname === '/admin/content/movies'} onClick={() => setSidebarOpen(false)} />
-              <NavButton href="/admin/content/tv-shows" label="TV Shows" icon={Tv} active={pathname === '/admin/content/tv-shows'} onClick={() => setSidebarOpen(false)}  />
+              <NavButton href="/admin/content/tv-shows" label="TV Shows" icon={Tv} active={pathname === '/admin/content/tv-shows'} onClick={() => setSidebarOpen(false)} />
               <NavButton href="/admin/content/episodes" label="Episodes" icon={Video} active={pathname === '/admin/content/episodes'} onClick={() => setSidebarOpen(false)} />
-              <NavButton href="/admin/content/actors" label="Actors" icon={Video} active={pathname === '/admin/content/actors'} onClick={() => setSidebarOpen(false)}  />
-              <NavButton href="/admin/content/companies" label="Companies" icon={Video} active={pathname === '/admin/content/companies'} onClick={() => setSidebarOpen(false)}  />
+              <NavButton href="/admin/content/actors" label="Actors" icon={User} active={pathname === '/admin/content/actors'} onClick={() => setSidebarOpen(false)} />
+              <NavButton href="/admin/content/companies" label="Companies" icon={Building} active={pathname === '/admin/content/companies'} onClick={() => setSidebarOpen(false)} />
             </div>
           )}
 
-          {/* Upload Dropdown */}
+          {/* Upload Group */}
+          <p className="text-gray-400 text-xs uppercase mt-4 mb-1">Upload Center</p>
           <button
             onClick={() => toggleMenu('upload')}
             className={`flex items-center px-3 py-2 w-full text-left rounded-md ${
@@ -118,26 +135,29 @@ export default function AdminLayout({ children }) {
 
           {expandedMenus.upload && (
             <div className="ml-6 space-y-1 text-sm">
-              <NavButton href="/admin/upload/movies" label="Movies" icon={Film} active={pathname === '/admin/upload/movies'} onClick={() => setSidebarOpen(false)}  />
-              <NavButton href="/admin/upload/tvshows" label="TV Shows" icon={Tv} active={pathname === '/admin/upload/tv-shows'} onClick={() => setSidebarOpen(false)} />
+              <NavButton href="/admin/upload/movies" label="Movies" icon={Film} active={pathname === '/admin/upload/movies'} onClick={() => setSidebarOpen(false)} />
+              <NavButton href="/admin/upload/tvshows" label="TV Shows" icon={Tv} active={pathname === '/admin/upload/tvshows'} onClick={() => setSidebarOpen(false)} />
               <NavButton href="/admin/upload/episodes" label="Episodes" icon={Video} active={pathname === '/admin/upload/episodes'} onClick={() => setSidebarOpen(false)} />
-              <NavButton href="/admin/upload/actors" label="Actors" icon={Video} active={pathname === '/admin/upload/actors'} onClick={() => setSidebarOpen(false)}  />
-              <NavButton href="/admin/upload/companies" label="Companies" icon={Video} active={pathname === '/admin/upload/companies'} onClick={() => setSidebarOpen(false)} />
+              <NavButton href="/admin/upload/actors" label="Actors" icon={User} active={pathname === '/admin/upload/actors'} onClick={() => setSidebarOpen(false)} />
+              <NavButton href="/admin/upload/companies" label="Companies" icon={Building} active={pathname === '/admin/upload/companies'} onClick={() => setSidebarOpen(false)} />
             </div>
           )}
 
-          {/* Static Links */}
-          <NavButton href="/admin/insights" label="Insights" icon={LayoutGrid} active={pathname === '/admin/insights'}  onClick={() => setSidebarOpen(false)} />
-          <NavButton href="/admin/payments" label="Payments" icon={LayoutGrid} active={pathname === '/admin/payments'}  onClick={() => setSidebarOpen(false)}/>
-          <NavButton href="/admin/submissions" label="Submissions" icon={LayoutGrid} active={pathname === '/admin/submissions'}  onClick={() => setSidebarOpen(false)}/>
+          {/* Operations Group */}
+          <p className="text-gray-400 text-xs uppercase mt-4 mb-1">Operations</p>
+          <NavButton href="/admin/insights" label="Insights" icon={BarChart2} active={pathname === '/admin/insights'} onClick={() => setSidebarOpen(false)} />
+          <NavButton href="/admin/payments" label="Payments" icon={CreditCard} active={pathname === '/admin/payments'} onClick={() => setSidebarOpen(false)} />
+          <NavButton href="/admin/submissions" label="Submissions" icon={Inbox} active={pathname === '/admin/submissions'} onClick={() => setSidebarOpen(false)} />
         </nav>
       </aside>
 
-      {/* Main content */}
+      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Mobile Toggle Button */}
+        {/* Mobile Header */}
         <div className="md:hidden bg-gray-900 text-white p-4 shadow flex justify-between items-center">
-          <h1 className="text-xl font-semibold">Admin Panel</h1>
+          <Link href="/browse" className="text-sm underline">
+            ← Back
+          </Link>
           <button onClick={() => setSidebarOpen(true)} className="text-white text-xl">
             <Menu className="h-6 w-6" />
           </button>

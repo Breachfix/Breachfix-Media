@@ -10,6 +10,7 @@ import AccountForm from "@/components/account-form";
 import PinContainer from "@/components/pin-container";
 import AuthBackground from "@/components/AuthBackground";
 import RequireAuth from "@/components/RequireAuth";
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 
 const initialFormData = {
@@ -210,22 +211,33 @@ export default function ManageAccounts() {
           </ul>
 
           {/* Buttons Below */}
-          <div className="text-center mt-6 space-y-4">
-            <button
-              onClick={() => setShowDeleteIcon(!showDeleteIcon)}
-              className="border border-gray-100 text-white px-6 py-2 text-sm rounded-full hover:bg-white hover:text-black transition-colors"
-            >
-              {showDeleteIcon ? "Cancel" : "Manage Profiles"}
-            </button>
+{/* BridgeFix Actions */}
+<div className="mt-10 w-full flex flex-col sm:flex-row sm:justify-center sm:items-center gap-4 text-center">
+  {/* Manage Profiles */}
+  <button
+    onClick={() => setShowDeleteIcon(!showDeleteIcon)}
+    className="w-full sm:w-auto border border-gray-300 text-white px-6 py-2 text-sm rounded-full hover:bg-white hover:text-black transition-colors"
+  >
+    {showDeleteIcon ? "Cancel" : "Manage Profiles"}
+  </button>
 
-            {/* 💡 Upgrade Button */}
-            <button
-              onClick={() => router.push("/subscribe")}
-              className="border border-yellow-500 text-yellow-400 px-6 py-2 text-sm rounded-full hover:bg-yellow-500 hover:text-black transition-colors"
-            >
-              Upgrade Your Subscription
-            </button>
-          </div>
+  {/* Admin Portal */}
+  <button
+    onClick={() => router.push("/admin")}
+    className="w-full sm:w-auto flex items-center justify-center gap-2 border border-blue-400 text-blue-300 px-6 py-2 text-sm rounded-full hover:bg-blue-500 hover:text-white transition-colors"
+  >
+    <Cog6ToothIcon className="w-5 h-5" />
+    <span>BreachFix Studio</span>
+  </button>
+
+  {/* Upgrade Plan */}
+  <button
+    onClick={() => router.push("/subscribe")}
+    className="w-full sm:w-auto border border-yellow-500 text-yellow-400 px-6 py-2 text-sm rounded-full hover:bg-yellow-500 hover:text-black transition-colors"
+  >
+    Upgrade Plan
+  </button>
+</div>
         </div>
 
         {/* Modals */}
