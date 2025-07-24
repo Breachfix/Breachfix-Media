@@ -232,7 +232,7 @@ export default function ManageAccounts() {
 
   {/* Upgrade Plan */}
   <button
-    onClick={() => router.push("/subscribe")}
+    onClick={() => router.push("/manage-subscriptions")}
     className="w-full sm:w-auto border border-yellow-500 text-yellow-400 px-6 py-2 text-sm rounded-full hover:bg-yellow-500 hover:text-black transition-colors"
   >
     Upgrade Plan

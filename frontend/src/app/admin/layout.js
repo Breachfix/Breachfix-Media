@@ -68,12 +68,12 @@ export default function AdminLayout({ children }) {
 
         {/* Title & Back Link (Desktop) */}
         <div className="hidden md:block mb-4">
-          <h1 className="text-2xl font-bold">Studio</h1>
+          <h1 className="text-2xl font-bold"> BreachFix Studio</h1>
           <Link
             href="/manage-accounts"
             className="mt-1 inline-flex items-center gap-1 text-sm text-gray-300 hover:text-white hover:underline"
           >
-            ← BreahFix
+            ← Back
           </Link>
         </div>
 
