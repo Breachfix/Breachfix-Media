@@ -1,12 +1,11 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { uploadMediaFiles, safeFinalizeUpload,} from "@/utils/useUploader";
-import { finalizeUpload, finalizeMediaMetadata } from "@/utils/uploadClient";
+import { uploadMediaFiles, safeFinalizeUpload } from "@/utils/useUploader";
+import { fetchFromApi } from "@/utils/apiClient";
 
 import GeneralInfoSection from "../sections/GeneralInfoSection";
-import GenresTagsSection from "../sections/GenresTagsSection";
-import LanguagesSection from "../sections/LanguagesSection";
-import ContentWarningsSection from "../sections/ContentWarningsSection";
 import MediaUploadSection from "../sections/MediaUploadSection";
 import PricingSection from "../sections/PricingSection";
 import MovieMetadataSection from "../metadata/MovieMetadataSection";
@@ -14,8 +13,6 @@ import TvShowMetadataSection from "../metadata/TvShowMetadataSection";
 import EpisodeMetadataSection from "../metadata/EpisodeMetadataSection";
 import ActorModal from "../modals/ActorModal";
 import CompanyModal from "../modals/CompanyModal";
-
-import { Plus } from "lucide-react"; // Optional icon
 
 const ALL_GENRES = [
   "Prophecy", "Bible", "Faith", "Healing", "Education", "Youth", "Science",
@@ -25,7 +22,7 @@ const ALL_GENRES = [
 ];
 
 const UploadForm = ({ contentType }) => {
-  const [genreSuggestions, setGenreSuggestions] = useState(ALL_GENRES);
+  const [genreSuggestions] = useState(ALL_GENRES);
   const [tvShows, setTvShows] = useState([]);
   const [isActorModalOpen, setIsActorModalOpen] = useState(false);
   const [actorOptions, setActorOptions] = useState([]);
@@ -73,24 +70,24 @@ const UploadForm = ({ contentType }) => {
   const [uploading, setUploading] = useState(false);
   const DRAFT_KEY = `draftUploadForm-${contentType}`;
 
-
   useEffect(() => {
     if (contentType === "episode") {
-      fetch("http://localhost:7001/api/v3/media/tvshows")
-        .then((res) => res.json())
-        .then((data) => setTvShows(data));
+      fetchFromApi("/media/tvshows")
+        .then((data) => setTvShows(data))
+        .catch((err) => console.error("Failed to fetch TV shows:", err));
     }
   }, [contentType]);
 
- useEffect(() => {
-  const savedForm = localStorage.getItem(DRAFT_KEY);
-  if (savedForm) {
-    setForm(JSON.parse(savedForm));
-  }
-}, [contentType]);
-useEffect(() => {
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
-}, [form]);
+  useEffect(() => {
+    const savedForm = localStorage.getItem(DRAFT_KEY);
+    if (savedForm) {
+      setForm(JSON.parse(savedForm));
+    }
+  }, [contentType]);
+
+  useEffect(() => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+  }, [form]);
 
   useEffect(() => {
     return () => {
@@ -101,24 +98,20 @@ useEffect(() => {
   }, []);
 
   const handleActorCreated = (newActor) => {
-  // Update actorOptions list with the new actor
-  setActorOptions((prev) => [...prev, newActor]);
+    setActorOptions((prev) => [...prev, newActor]);
+    setForm((prev) => ({
+      ...prev,
+      actors: [...(prev.actors || []), newActor._id],
+    }));
+  };
 
-  // Add new actor's ID to selected form actors
-  setForm((prev) => ({
-    ...prev,
-    actors: [...(prev.actors || []), newActor._id],
-  }));
-};
-
-const handleCompanyCreated = (newCompany) => {
-  setCompanyOptions((prev) => [...prev, newCompany]);
-
-  setForm((prev) => ({
-    ...prev,
-    company: newCompany._id,
-  }));
-};
+  const handleCompanyCreated = (newCompany) => {
+    setCompanyOptions((prev) => [...prev, newCompany]);
+    setForm((prev) => ({
+      ...prev,
+      company: newCompany._id,
+    }));
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -130,7 +123,6 @@ const handleCompanyCreated = (newCompany) => {
       const previewUrl = URL.createObjectURL(file);
       setForm((prev) => ({ ...prev, [name]: file }));
 
-      // Set preview based on field name
       if (name === "posterFile") setPosterPreview(previewUrl);
       if (name === "trailerFile") setTrailerPreview(previewUrl);
       if (name === "videoFile") setVideoPreview(previewUrl);
@@ -141,92 +133,86 @@ const handleCompanyCreated = (newCompany) => {
     }
   };
 
-const handleSubmit = async () => {
-  try {
-    setUploading(true);
+  const handleSubmit = async () => {
+    try {
+      setUploading(true);
+      localStorage.removeItem(DRAFT_KEY);
 
-    localStorage.removeItem(DRAFT_KEY);
+      const ensureArray = (val) => Array.isArray(val) ? val : [];
+      const normalizeArray = (input) => {
+        if (Array.isArray(input)) return input;
+        if (typeof input === "string") return input.split(",").map((item) => item.trim());
+        return [];
+      };
 
-    const ensureArray = (val) => Array.isArray(val) ? val : [];
-    const normalizeArray = (input) => {
-      if (Array.isArray(input)) return input;
-      if (typeof input === "string") return input.split(",").map((item) => item.trim());
-      return [];
-    };
+      const {
+        genreInput,
+        tagInput,
+        newAvailableLang,
+        newSubtitleLang,
+        newContentWarning,
+        ...cleanForm
+      } = form;
 
-    // 🧹 Strip UI-only fields
-    const {
-      genreInput,
-      tagInput,
-      newAvailableLang,
-      newSubtitleLang,
-      newContentWarning,
-      ...cleanForm
-    } = form;
+      const pricing = {
+        type: form.pricingType,
+        purchasePrice: parseFloat(form.purchasePrice),
+        rentalPrice: parseFloat(form.rentalPrice),
+        subscriptionOnly: form.subscriptionOnly,
+      };
 
-    const pricing = {
-      type: form.pricingType,
-      purchasePrice: parseFloat(form.purchasePrice),
-      rentalPrice: parseFloat(form.rentalPrice),
-      subscriptionOnly: form.subscriptionOnly,
-    };
+      const metadata = {
+        ...cleanForm,
+        pricing,
+        actors: normalizeArray(form.actors),
+        tags: normalizeArray(form.tags),
+        genres: ensureArray(form.genres),
+        availableLanguages: ensureArray(form.availableLanguages),
+        subtitleLanguages: ensureArray(form.subtitleLanguages),
+        contentWarnings: ensureArray(form.contentWarnings),
+      };
 
-    const metadata = {
-      ...cleanForm,
-      pricing,
-      actors: normalizeArray(form.actors),
-      tags: normalizeArray(form.tags),
-      genres: ensureArray(form.genres),
-      availableLanguages: ensureArray(form.availableLanguages),
-      subtitleLanguages: ensureArray(form.subtitleLanguages),
-      contentWarnings: ensureArray(form.contentWarnings),
-    };
+      const result = await uploadMediaFiles({
+        files: {
+          posterFile: form.posterFile,
+          trailerFile: form.trailerFile,
+          videoFile: form.videoFile,
+        },
+        mediaType: contentType,
+        metadata,
+      });
 
-    // 1. Upload files & get S3 keys
-    const result = await uploadMediaFiles({
-      files: {
-        posterFile: form.posterFile,
-        trailerFile: form.trailerFile,
-        videoFile: form.videoFile,
-      },
-      mediaType: contentType,
-      metadata,
-    });
+      const id = result?._id || result?.id;
+      if (!id) throw new Error("❌ Failed to retrieve ID from saved content");
 
+      const { posterFileS3Key, trailerFileS3Key, videoFileS3Key } = result;
 
-    const id = result?._id || result?.id;
-    if (!id) throw new Error("❌ Failed to retrieve ID from saved content");
+      if (posterFileS3Key) {
+        await safeFinalizeUpload(posterFileS3Key, id, contentType, "poster", form.tvShowId, form.seasonNumber);
+      }
+      if (trailerFileS3Key) {
+        await safeFinalizeUpload(trailerFileS3Key, id, contentType, "trailer", form.tvShowId, form.seasonNumber);
+      }
+      if (videoFileS3Key) {
+        await safeFinalizeUpload(videoFileS3Key, id, contentType, "video", form.tvShowId, form.seasonNumber);
+      }
 
-    // 2. Finalize each uploaded file to permanent S3 path
-    const { posterFileS3Key, trailerFileS3Key, videoFileS3Key } = result;
-
-    if (posterFileS3Key) {
-      await safeFinalizeUpload(posterFileS3Key, id, contentType, "poster", form.tvShowId, form.seasonNumber);
+      alert(`${contentType} uploaded and finalized successfully!`);
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Upload failed.");
+    } finally {
+      setUploading(false);
     }
-    if (trailerFileS3Key) {
-      await safeFinalizeUpload(trailerFileS3Key, id, contentType, "trailer", form.tvShowId, form.seasonNumber);
-    }
-    if (videoFileS3Key) {
-      await safeFinalizeUpload(videoFileS3Key, id, contentType, "video", form.tvShowId, form.seasonNumber);
-    }
+  };
 
-    alert(`${contentType} uploaded and finalized successfully!`);
-  } catch (err) {
-    console.error("Upload error:", err);
-    alert("Upload failed.");
-  } finally {
-    setUploading(false);
-  }
-};
-
-
-return (
-  <div className="space-y-6">
+  return (
+    <div className="space-y-6">
       <h1 className="text-2xl font-semibold text-gray-800">
         Upload {contentType.charAt(0).toUpperCase() + contentType.slice(1)}
       </h1>
 
-       <MediaUploadSection
+      <MediaUploadSection
         form={form}
         setForm={setForm}
         posterPreview={posterPreview}
@@ -239,34 +225,23 @@ return (
       />
 
       <GeneralInfoSection
-  form={form}
-  setForm={setForm}
-  setIsActorModalOpen={setIsActorModalOpen}
-  setIsCompanyModalOpen={setIsCompanyModalOpen}
-/>
-      <ActorModal
-  isOpen={isActorModalOpen}
-  onClose={() => setIsActorModalOpen(false)}
-  onActorCreated={handleActorCreated}
-/> 
-
-<CompanyModal
-  isOpen={isCompanyModalOpen}
-  onClose={() => setIsCompanyModalOpen(false)}
-  onCompanyCreated={handleCompanyCreated}
-/>
-
-      {/* <GenresTagsSection
         form={form}
         setForm={setForm}
-        handleChange={handleChange}
-        genreSuggestions={genreSuggestions}
-        tagSuggestions={[]}
-      /> */}
+        setIsActorModalOpen={setIsActorModalOpen}
+        setIsCompanyModalOpen={setIsCompanyModalOpen}
+      />
 
-      {/* <LanguagesSection form={form} setForm={setForm} handleChange={handleChange} /> */}
+      <ActorModal
+        isOpen={isActorModalOpen}
+        onClose={() => setIsActorModalOpen(false)}
+        onActorCreated={handleActorCreated}
+      />
 
-      {/* <ContentWarningsSection form={form} setForm={setForm} handleChange={handleChange} /> */}
+      <CompanyModal
+        isOpen={isCompanyModalOpen}
+        onClose={() => setIsCompanyModalOpen(false)}
+        onCompanyCreated={handleCompanyCreated}
+      />
 
       {contentType === "movie" && (
         <MovieMetadataSection form={form} setForm={setForm} handleChange={handleChange} />
@@ -285,8 +260,6 @@ return (
         />
       )}
 
-
-
       <PricingSection form={form} setForm={setForm} handleChange={handleChange} />
 
       <div className="flex justify-end">
@@ -298,7 +271,8 @@ return (
           {uploading ? "Uploading..." : `Upload ${contentType}`}
         </Button>
       </div>
-    {/* </div> */}
-  </div>
-);}
+    </div>
+  );
+};
+
 export default UploadForm;

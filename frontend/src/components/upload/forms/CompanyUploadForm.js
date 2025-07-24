@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import CompanyUploadFormSections from "../sections/CompanyUploadSection";
 import { Button } from "@/components/ui/button";
-import authenticatedAxios from "@/utils/authenticatedAxios";
+import authenticatedAxios from "@/lib/authenticatedAxios";
 
 const CompanyUploadForm = () => {
   const [form, setForm] = useState({
