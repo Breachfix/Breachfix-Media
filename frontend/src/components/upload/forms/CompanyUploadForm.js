@@ -1,6 +1,9 @@
+"use client";
+
 import React, { useState } from "react";
 import CompanyUploadFormSections from "../sections/CompanyUploadSection";
 import { Button } from "@/components/ui/button";
+import authenticatedAxios from "@/utils/authenticatedAxios";
 
 const CompanyUploadForm = () => {
   const [form, setForm] = useState({
@@ -37,31 +40,31 @@ const CompanyUploadForm = () => {
       }
     }
 
-    const res = await fetch("http://localhost:7001/api/v3/companies", {
-      method: "POST",
-      body,
-    });
-
-    const data = await res.json();
-    console.log("Company upload response:", data);
+    try {
+      const res = await authenticatedAxios.post("/companies", body);
+      console.log("✅ Company upload response:", res.data);
+      // Optionally reset form or redirect
+    } catch (err) {
+      console.error("❌ Company upload failed:", err);
+    }
   };
 
   return (
     <>
-    <h1 className="text-2xl font-semibold text-gray-800 mb-6">Upload Company</h1>
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <CompanyUploadFormSections
-        form={form}
-        setForm={setForm}
-        logoPreview={logoPreview}
-        setLogoPreview={setLogoPreview}
-        handleChange={handleChange}
-      />
+      <h1 className="text-2xl font-semibold text-gray-800 mb-6">Upload Company</h1>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <CompanyUploadFormSections
+          form={form}
+          setForm={setForm}
+          logoPreview={logoPreview}
+          setLogoPreview={setLogoPreview}
+          handleChange={handleChange}
+        />
 
-      <div className="flex justify-end">
-        <Button type="submit">Upload Company</Button>
-      </div>
-    </form>
+        <div className="flex justify-end">
+          <Button type="submit">Upload Company</Button>
+        </div>
+      </form>
     </>
   );
 };

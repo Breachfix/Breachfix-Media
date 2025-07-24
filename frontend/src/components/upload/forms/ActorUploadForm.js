@@ -1,6 +1,9 @@
+"use client";
+
 import React, { useState } from "react";
 import ActorUploadFormSections from "../sections/ActorUploadSection";
 import { Button } from "@/components/ui/button";
+import authenticatedAxios from "@/utils/authenticatedAxios";
 
 const ActorUploadForm = () => {
   const [form, setForm] = useState({
@@ -21,10 +24,10 @@ const ActorUploadForm = () => {
 
     if (type === "file" && files?.[0]) {
       const file = files[0];
-      setForm(prev => ({ ...prev, [name]: file }));
+      setForm((prev) => ({ ...prev, [name]: file }));
       setProfilePreview(URL.createObjectURL(file));
     } else {
-      setForm(prev => ({ ...prev, [name]: value }));
+      setForm((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -38,31 +41,31 @@ const ActorUploadForm = () => {
       }
     }
 
-    const res = await fetch("http://localhost:7001/api/v3/actors", {
-      method: "POST",
-      body,
-    });
-
-    const data = await res.json();
-    console.log("Actor upload response:", data);
+    try {
+      const res = await authenticatedAxios.post("/actors", body);
+      console.log("✅ Actor upload response:", res.data);
+      // Optionally reset form or navigate
+    } catch (err) {
+      console.error("❌ Actor upload failed:", err);
+    }
   };
 
   return (
     <>
-    <h1 className="text-2xl font-semibold text-gray-800 mb-6">Upload Actor</h1>
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <ActorUploadFormSections
-        form={form}
-        setForm={setForm}
-        profilePreview={profilePreview}
-        setProfilePreview={setProfilePreview}
-        handleChange={handleChange}
-      />
+      <h1 className="text-2xl font-semibold text-gray-800 mb-6">Upload Actor</h1>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <ActorUploadFormSections
+          form={form}
+          setForm={setForm}
+          profilePreview={profilePreview}
+          setProfilePreview={setProfilePreview}
+          handleChange={handleChange}
+        />
 
-      <div className="flex justify-end">
-        <Button type="submit">Upload Actor</Button>
-      </div>
-    </form>
+        <div className="flex justify-end">
+          <Button type="submit">Upload Actor</Button>
+        </div>
+      </form>
     </>
   );
 };
